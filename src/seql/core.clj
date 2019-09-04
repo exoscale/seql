@@ -12,7 +12,10 @@
 ;; =================
 
 (defn entity-schema
-  "Look up entity's schema"
+  "Look up entity in schema. Takes a schema and an entity. The entity
+  argument can take be of two different shapes: it can be a keyword
+  that will match the namespace of the entity in question or a coll of
+  namespaced keyword (ident name) and arguments"
   [{:keys [schema]} entity]
   (if (keyword? entity)
     [entity (get schema entity)]
@@ -21,7 +24,8 @@
       [entity-key (get schema entity-key) ident-name args])))
 
 (defn transform-out
-  "Prepare name transforms (yields a tuple of database name to aliased name)"
+  "Takes a namespaced keyword and prepare name transforms.
+  Returns a tuple of database name to aliased name."
   [k]
   (let [entity   (namespace k)
         sql-name (csk/->snake_case (name k))]
@@ -29,25 +33,18 @@
      (keyword (str entity "__" (name k)))]))
 
 (defn transform-for-join
-  "Transform to expected SQL format"
+  "Takes a namespace keyword and returns an identifier in valid SQL
+  format"
   [k]
   (let [entity (namespace k)
         sql-name (csk/->snake_case (name k))]
     (keyword (str entity "." sql-name))))
 
-(defn build-fields
-  "Build query field names"
-  [{:keys [compounds] :as schema} fields]
-  (->>
-   (for [f fields :let [compound? (contains? (set (keys compounds)) f)]]
-     (if compound? (:source (get compounds f)) [f]))
-   (reduce concat [])
-   (map transform-out)
-   (vec)))
-
 (defn table-field
   [table field]
-  (keyword (format "%s.%s" (name table) (name field))))
+  (keyword (format "%s.%s"
+                   (name table)
+                   (name field))))
 
 (defn add-ident
   "Add a where clause for an ident"
@@ -55,7 +52,9 @@
   (h/merge-where q [:= (table-field (:table schema) ident) arg]))
 
 (defmulti process-join
-  "Process join by relation type"
+  "Process join by relation type. Takes a base query, a map with
+  `:entity` and `:table` keys and a map of options to build the
+  relation"
   #(:type %3))
 
 (defmethod process-join :one-to-many
@@ -67,7 +66,7 @@
            (transform-for-join (or remote-name remote-id))]))
 
 (defn process-field
-  "Add necessary stanzas to "
+  "Add necessary stanzas to realize field targeting with SQL"
   [schema {:keys [relations compounds fields entity]}]
   (let [rel-set      (set (keys relations))
         compound-set (set (keys compounds))
@@ -118,6 +117,8 @@
       (add-ident entity-def ident (first args)))))
 
 (defn prepare-field
+  "Conditionally apply field transform on field id if schema defines
+  any"
   [schema field value]
   (if-let [f (second (get-in schema [(keyword (namespace field)) :transforms field]))]
     (f value)
@@ -186,10 +187,8 @@
    yield back a qualified keyword"
   [k]
   (let [[ns tail] (str/split (name k) #"__" 2)]
-    (->> tail
-         (csk/->kebab-case)
-         (format "%s/%s" (csk/->kebab-case ns))
-         (keyword))))
+    (keyword (csk/->kebab-case ns)
+             (csk/->kebab-case tail))))
 
 (defn qualify-result
   "Qualify a result with the appropriate namespace"
