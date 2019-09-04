@@ -65,13 +65,12 @@
     (is (= :foo.bar (c/transform-for-join :foo/bar)))))
 
 (deftest add-ident-test
-
   (testing "generation of ident selection clause"
-    (is {:where [:= :user.id "some-uuid"]}
-        (c/add-ident {}
-                     (-> env :schema :user)
-                     :user/by-id
-                     ["some-uuid"]))))
+    (is (= {:where [:= :user.id "some-uuid"]}
+           (c/add-ident {}
+                        (-> env :schema :user)
+                        :user/id
+                        "some-uuid")))))
 
 (deftest process-join-test
   (testing "left-join: supplied remote name"
@@ -143,8 +142,8 @@
     (is (= (c/prepare-field schema :invoice/state :foo)
            "foo")))
   (testing "field has no transform -> identity"
-    (= "bar" (c/prepare-field schema :invoice/id "bar"))
-    (= :bar (c/prepare-field schema :invoice/id :bar))))
+    (is (= "bar" (c/prepare-field schema :invoice/id "bar")))
+    (is (= :bar (c/prepare-field schema :invoice/id :bar)))))
 
 (deftest test-qualify-key
   (testing "basic id -> keyword convertion"

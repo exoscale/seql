@@ -129,7 +129,7 @@
       (swap! store add-listener! :account/create counting-listener)
       (mutate! @store :account/create {:account/name  "a3"
                                        :account/state :active})
-      (= 1 @calls))
+      (is (= 1 @calls)))
 
 
     (testing "can remove a listener and register is not called anymore"
