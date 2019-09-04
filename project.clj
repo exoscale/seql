@@ -1,4 +1,4 @@
-(defproject seql "0.1.1-SNAPSHOT"
+(defproject exoscale/seql "0.1.1-SNAPSHOT"
   :description "Simplfied EDN Query Language for SQL"
   :url "https://github.com/exoscale/bundestore"
   :license {:name "ISC"}
@@ -12,6 +12,7 @@
           :doc-files ["README.md" "doc/quickstart.md" "doc/sandbox.md" "doc/seql.md"]
           :namespaces [#"^seql\.(?!spec)"]
           :metadata    {:doc/format :markdown}}
+  :deploy-repositories [["snapshots" :clojars] ["releases" :clojars]]
   :profiles {:dev {:dependencies   [[mysql/mysql-connector-java "8.0.17"]
                                     [com.h2database/h2          "1.4.199"]
                                     [lambdaisland/kaocha        "0.0-529"]]

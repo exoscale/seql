@@ -7,6 +7,10 @@ seql: Simplified EDN Query Language
 [EQL](https://edn-query-language.org/) inspired query language to
 access entities stored in traditional SQL databases.
 
+```clojure
+[[exoscale/seql "0.1.1"]]
+```
+
 ## Introduction
 
 Accessing SQL entities is often done based on a pre-existing
