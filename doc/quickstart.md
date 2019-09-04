@@ -94,15 +94,15 @@ We can now perform the following query:
 
 #:account{:name "a0" :state :active}
 
-(query env :account [:account/name] [[:a/active]])
+(query env :account [:account/name] [[:account/active]])
 
 ;; =>
 
 [#:account{:name "a0"}
  #:account{:name "a1"}]
- 
- 
-(query env :account [:account/name] [[:a/state :suspended]])
+
+
+(query env :account [:account/name] [[:account/state :suspended]])
 
 ;; =>
 
@@ -141,7 +141,7 @@ nested entity as well:
        [:account/name
         :account/state
         {:account/users [:user/name :user/email]}])
-		
+
 ;; =>
 
 [#:account{:name  "a0"
@@ -202,7 +202,7 @@ were we saw that:
 - To build arbitrarily nested entities, *relations* need to be used.
 - For ad-hoc field buiding, *compounds* can receive database fields
   and yield new values.
-  
+
 With this in mind, here's a complete schema for the above database
 schema:
 
@@ -269,7 +269,7 @@ At its core, mutations expect two things:
 
          (condition :active  :state :active)
          (condition :state)
-		 
+
          (mutation :account/create ::account [params]
                    (-> (h/insert-into :account)
                        (h/values [params])))
@@ -286,7 +286,7 @@ Adding new accounts can now be done through `mutate!`:
 ```clojure
 (mutate! env :account/create {:account/name  "a3"
                               :account/state :active})
-							  
+
 (query env [:account/.name "a3"] [:account/state])
 
 ;; =>
@@ -315,7 +315,7 @@ transactions with a map of:
 (let [env (add-listener! env store-result)]
    (mutate! env :account/create {:account/name "a4"
                                  :account/state :active}))
-								 
+
 @last-result
 
 ;; => {:result [1] :mutation :account/create}
