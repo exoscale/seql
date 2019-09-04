@@ -9,7 +9,7 @@
   :plugins [[lein-codox "0.10.7"]]
   :aliases {"kaocha" ["with-profile" "+dev" "run" "-m" "kaocha.runner"]}
   :codox {:source-uri  "https://github.com/exoscale/seql/blob/{version}/{filepath}#L{line}"
-          :doc-files ["README.md" "doc/quickstart.md" "doc/sandbox.md"]
+          :doc-files ["README.md" "doc/quickstart.md" "doc/sandbox.md" "doc/seql.md"]
           :namespaces [#"^seql\.(?!spec)"]
           :metadata    {:doc/format :markdown}}
   :profiles {:dev {:dependencies   [[mysql/mysql-connector-java "8.0.17"]

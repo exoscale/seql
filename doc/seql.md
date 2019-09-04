@@ -74,5 +74,16 @@ This allows nesting deep nesting of entities
 
 ### Conditions
 
-When provided, conditions may filter results
+When provided, conditions may filter results. Conditions are provided
+as an extra argument to `seql.core/query` as a collection of
+vectors. All conditions vectors have the condition name as their first
+element, followed by arguments if any.
+
+```
+(query :account
+       [:account/name]
+	   [[:account/active?] [:account/category :standard]])
+```
+
+
 
