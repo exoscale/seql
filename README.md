@@ -60,3 +60,17 @@ apparent in some case, particularly for mutations.
 **seql** provides two introductory documents to get started with
 designing schemas and queries incrementally, as well as full API
 documentation. All are available on [the documentation website](https://exoscale.github.io/seql/).
+
+## Changelog
+
+### 0.1.1
+
+Inital release.
+
+## Thanks
+
+This project was greatly inspired by @wilkerlucio's work on
+[pathom](https://github.com/wilkerlucio/pathom) and subsequently
+[EQL](https://github.com/edn-query-language/eql).  As a first consumer
+of this library @davidjacot also help iron out a few kinks and made
+some significant improvements.

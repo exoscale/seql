@@ -1,0 +1,9 @@
+dist: trusty
+sudo: false
+language: clojure
+jdk:
+- openjdk8
+- openjdk11
+branches:
+  except:
+  - gh-pages
