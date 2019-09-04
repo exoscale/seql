@@ -59,4 +59,4 @@ apparent in some case, particularly for mutations.
 
 **seql** provides two introductory documents to get started with
 designing schemas and queries incrementally, as well as full API
-documentation. All are available on [the documentation website](https://exoscale.github.io/seql).
+documentation. All are available on [the documentation website](https://exoscale.github.io/seql/).
