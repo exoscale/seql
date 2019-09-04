@@ -1,6 +1,8 @@
 seql: Simplified EDN Query Language
 ===================================
 
+[![Build Status](https://secure.travis-ci.org/exoscale/seql.png)](http://travis-ci.org/exoscale/seql)
+
 **seql** intends to provide a simplified
 [EQL](https://edn-query-language.org/) inspired query language to
 access entities stored in traditional SQL databases.
