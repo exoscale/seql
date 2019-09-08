@@ -8,7 +8,7 @@ seql: Simplified EDN Query Language
 access entities stored in traditional SQL databases.
 
 ```clojure
-[[exoscale/seql "0.1.1"]]
+[[exoscale/seql "0.1.2"]]
 ```
 
 ## Introduction
@@ -68,6 +68,10 @@ designing schemas and queries incrementally, as well as full API
 documentation. All are available on [the documentation website](https://exoscale.github.io/seql/).
 
 ## Changelog
+
+### 0.1.2
+
+Minor fixes for errors spotted by eastwood.
 
 ### 0.1.1
 
