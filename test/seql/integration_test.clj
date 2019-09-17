@@ -126,7 +126,7 @@
 
     (testing "can register listener and register is called"
       (reset! calls 0)
-      (swap! store add-listener! :account/create counting-listener)
+      (swap! store add-listener! :account/create ::counting-listener counting-listener)
       (mutate! @store :account/create {:account/name  "a3"
                                        :account/state :active})
       (is (= 1 @calls)))
@@ -134,8 +134,8 @@
 
     (testing "can remove a listener and register is not called anymore"
       (reset! calls 0)
-      (swap! store add-listener!    :account/create counting-listener)
-      (swap! store remove-listener! :account/create counting-listener)
+      (swap! store add-listener!    :account/create ::counting-listener counting-listener)
+      (swap! store remove-listener! :account/create ::counting-listener)
       (mutate! @store :account/create {:account/name  "a3"
                                        :account/state :active})
 
@@ -144,8 +144,8 @@
   (testing "removing a listener that was not registered doesn't have side-effects"
     (let [listener2 (constantly nil)]
       (reset! calls 0)
-      (swap! store add-listener!    :account/create counting-listener)
-      (swap! store remove-listener! :account/create listener2)
+      (swap! store add-listener!    :account/create ::counting-listener counting-listener)
+      (swap! store remove-listener! :account/create ::not-registered)
       (mutate! @store :account/create {:account/name  "a3"
                                        :account/state :active})
 

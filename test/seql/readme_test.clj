@@ -268,7 +268,10 @@
           store-result (fn [details]
                          (reset! last-result
                                  (select-keys details [:mutation :result])))
-          env          (add-listener! env :account/create store-result)]
+          env          (add-listener! env
+                                      :account/create
+                                      ::handler
+                                      store-result)]
 
       (mutate! env :account/create {:account/name "a4" :account/state :active})
 
