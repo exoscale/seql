@@ -296,7 +296,7 @@
   "Fetch listeners"
   [env mutation]
   (let [entity (-> mutation namespace keyword)]
-    (or (get-in env [:schema entity :listeners mutation]) [])))
+    (get-in env [:schema entity :listeners mutation])))
 
 (defn unqualify
   [m]
@@ -337,13 +337,13 @@
                           ;; not match
                           :mutation mutation
                           :params   params})))
-
-       (doseq [listener listeners]
-         (listener {:mutation mutation
-                    :result   result
-                    :params   params
-                    :metadata metadata}))
-
+       (run! (fn [[key listener]]
+               (listener {:key key
+                          :mutation mutation
+                          :result   result
+                          :params   params
+                          :metadata metadata}))
+             listeners)
        result))))
 
 ;; Environment modifiers
@@ -351,14 +351,14 @@
 
 (defn add-listener!
   "Given an environment, add a mutation handler.
-   Yields an updated environment"
-  [env mutation handler]
+  The handlers is bound by `key`. Yields an updated environment"
+  [env mutation key handler]
   (let [entity (-> mutation namespace keyword)]
-    (update-in env [:schema entity :listeners mutation] conj handler)))
+    (assoc-in env [:schema entity :listeners mutation key] handler)))
 
 (defn remove-listener!
-  "Given an environment, remove a mutation handler.
+  "Given an environment, remove a mutation handler by `key`.
   Yields an updated environment."
-  [env mutation handler]
+  [env mutation key]
   (let [entity (-> mutation namespace keyword)]
-    (update-in env [:schema entity :listeners mutation] (partial filter #(not (= handler %))))))
+    (update-in env [:schema entity :listeners mutation] dissoc key)))
