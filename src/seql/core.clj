@@ -269,7 +269,7 @@
   ([env entity fields]
    (query env entity fields []))
   ([env entity fields conditions]
-   {:pre [(s/valid? ::query-args [env entity fields conditions])]}
+   (s/assert ::query-args [env entity fields conditions])
    (let [[q qmeta] (sql-query env entity fields conditions)]
      (->> (sql/format q)
           (jdbc/query (:jdbc env))
@@ -298,17 +298,13 @@
   (let [entity (-> mutation namespace keyword)]
     (or (get-in env [:schema entity :listeners mutation]) {})))
 
-(defn unqualify
-  [m]
-  (reduce-kv #(assoc %1 (keyword (name %2)) %3) {} m))
-
 (defn mutate!
   "Perform a mutation. Since mutations are spec'd, parameters are
    expected to conform it."
   ([env mutation params]
    (mutate! env mutation params {}))
   ([env mutation params metadata]
-   {:pre [(s/valid? ::mutate-args [env mutation params])]}
+   (s/assert ::mutate-args [env mutation params])
    (let [{:keys [spec handler]} (find-mutation env mutation)
          listeners              (find-listeners env mutation)]
 
@@ -324,7 +320,6 @@
                     (let [transform (process-transforms-fn (:schema env)
                                                            :serialize)
                           statement (-> (transform params)
-                                        (unqualify)
                                         (handler)
                                         (sql/format))]
                       (jdbc/execute! jdbc statement)))]
