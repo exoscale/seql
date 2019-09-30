@@ -126,27 +126,34 @@
 
     (testing "can register listener and register is called"
       (reset! calls 0)
-      (swap! store add-listener! :account/create ::counting-listener counting-listener)
+      (swap! store add-listener! :account/create ::counting-listener1 counting-listener)
       (mutate! @store :account/create {:account/name  "a3"
                                        :account/state :active})
+      (swap! store remove-listener! :account/create ::counting-listener1)
       (is (= 1 @calls)))
 
+    (testing "cannot register listener twice with same key"
+      (reset! calls 0)
+      (is (thrown? clojure.lang.ExceptionInfo
+                   (do
+                     (swap! store add-listener! :account/create ::counting-listener2 counting-listener)
+                     (swap! store add-listener! :account/create ::counting-listener2 counting-listener))))
+      (swap! store remove-listener! :account/create ::counting-listener2))
 
     (testing "can remove a listener and register is not called anymore"
       (reset! calls 0)
-      (swap! store add-listener!    :account/create ::counting-listener counting-listener)
-      (swap! store remove-listener! :account/create ::counting-listener)
+      (swap! store add-listener!    :account/create ::counting-listener3 counting-listener)
+      (swap! store remove-listener! :account/create ::counting-listener3)
       (mutate! @store :account/create {:account/name  "a3"
                                        :account/state :active})
 
       (is (zero? @calls)))
 
   (testing "removing a listener that was not registered doesn't have side-effects"
-    (let [listener2 (constantly nil)]
-      (reset! calls 0)
-      (swap! store add-listener!    :account/create ::counting-listener counting-listener)
-      (swap! store remove-listener! :account/create ::not-registered)
-      (mutate! @store :account/create {:account/name  "a3"
-                                       :account/state :active})
+    (reset! calls 0)
+    (swap! store add-listener!    :account/create ::counting-listener4 counting-listener)
+    (swap! store remove-listener! :account/create ::not-registered)
+    (mutate! @store :account/create {:account/name  "a3"
+                                     :account/state :active})
 
-      (is (= 1 @calls))))))
+    (is (= 1 @calls)))))
