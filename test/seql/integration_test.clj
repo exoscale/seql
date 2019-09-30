@@ -36,10 +36,9 @@
 
            (mutation :account/update
                      ::account
-                     [{:keys [id] :as params}]
+                     [{:keys [:account/id] :as params}]
                      (-> (h/update :account)
-                         ;; values are fed unqualified
-                         (h/sset (dissoc params :id))
+                         (h/sset (dissoc params :account/id))
                          (h/where [:= :id id]))))
    (entity :user
            (field :id          (ident))
@@ -113,7 +112,7 @@
 
     (testing "inserting additional account"
       (mutate! @store :account/create {:account/name  "a3"
-                                        :account/state :active}))
+                                       :account/state :active}))
 
     (testing "can retrieve account 3"
       (is (= {:account/name  "a3"
@@ -149,11 +148,11 @@
 
       (is (zero? @calls)))
 
-  (testing "removing a listener that was not registered doesn't have side-effects"
-    (reset! calls 0)
-    (swap! store add-listener!    :account/create ::counting-listener4 counting-listener)
-    (swap! store remove-listener! :account/create ::not-registered)
-    (mutate! @store :account/create {:account/name  "a3"
-                                     :account/state :active})
+    (testing "removing a listener that was not registered doesn't have side-effects"
+      (reset! calls 0)
+      (swap! store add-listener!    :account/create ::counting-listener4 counting-listener)
+      (swap! store remove-listener! :account/create ::not-registered)
+      (mutate! @store :account/create {:account/name  "a3"
+                                       :account/state :active})
 
-    (is (= 1 @calls)))))
+      (is (= 1 @calls)))))

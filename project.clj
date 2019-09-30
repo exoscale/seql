@@ -4,7 +4,7 @@
   :license {:name "ISC"}
   :dependencies [[org.clojure/clojure   "1.10.1"]
                  [org.clojure/java.jdbc "0.7.10"]
-                 [honeysql              "0.9.6"]
+                 [honeysql              "0.9.8"]
                  [camel-snake-kebab     "0.4.0"]]
   :plugins [[lein-codox "0.10.7"]]
   :aliases {"kaocha" ["with-profile" "+dev" "run" "-m" "kaocha.runner"]}
