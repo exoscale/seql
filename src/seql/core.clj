@@ -296,7 +296,7 @@
   "Fetch listeners"
   [env mutation]
   (let [entity (-> mutation namespace keyword)]
-    (get-in env [:schema entity :listeners mutation])))
+    (or (get-in env [:schema entity :listeners mutation]) {})))
 
 (defn unqualify
   [m]
@@ -351,14 +351,28 @@
 
 (defn add-listener!
   "Given an environment, add a mutation handler.
-  The handlers is bound by `key`. Yields an updated environment"
-  [env mutation key handler]
-  (let [entity (-> mutation namespace keyword)]
-    (assoc-in env [:schema entity :listeners mutation key] handler)))
+  The handlers is bound by `key`, if specified, otherwise the `key` will
+  default to the mutation key. Yields an updated environment"
+  ([env mutation handler]
+   (add-listener! env mutation mutation handler))
+  ([env mutation key handler]
+   (let [entity (-> mutation namespace keyword)]
+     (update-in env
+                [:schema entity :listeners mutation key]
+                (fn [h]
+                  (when h
+                    (throw (ex-info (format "Listener already registered for %s"
+                                            key)
+                                    {:type ::already-registered-error
+                                     :key key})))
+                  handler)))))
 
 (defn remove-listener!
-  "Given an environment, remove a mutation handler by `key`.
-  Yields an updated environment."
-  [env mutation key]
-  (let [entity (-> mutation namespace keyword)]
-    (update-in env [:schema entity :listeners mutation] dissoc key)))
+  "Given an environment, remove a mutation handler by `key` if
+  specified, otherwise it will remove a handler that match the
+  mutation `key`. Yields an updated environment."
+  ([env mutation]
+   (remove-listener! env mutation mutation))
+  ([env mutation key]
+   (let [entity (-> mutation namespace keyword)]
+     (update-in env [:schema entity :listeners mutation] dissoc key))))
