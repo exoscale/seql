@@ -1,4 +1,4 @@
-(defproject exoscale/seql "0.1.5"
+(defproject exoscale/seql "0.1.6-SNAPSHOT"
   :description "Simplfied EDN Query Language for SQL"
   :url "https://github.com/exoscale/bundestore"
   :license {:name "ISC"}
