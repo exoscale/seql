@@ -1,6 +1,7 @@
 (ns seql.helpers
   "A collection of functions and macros used to help building
-   SEQL schemas conforming to the spec provided in :seql.core/schema")
+   SEQL schemas conforming to the spec provided in :seql.core/schema"
+  (:require [clojure.edn :as edn]))
 
 (defn- qualify
   [entity-name id]
@@ -28,7 +29,8 @@
 
 (def transforms
   "Commonly needed transforms for `transform`"
-  {:keyword [keyword name]})
+  {:keyword [keyword name]
+   :edn     [edn/read-string pr-str]})
 
 (defn transform
   "Provide transformation for the field. Transformations
