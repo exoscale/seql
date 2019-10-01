@@ -11,7 +11,9 @@
   (doseq [{:keys [type context] :as form} (flatten forms)]
     (when (or (nil? type) (nil? context))
       (throw
-       (ex-info "Unknown form encountered" {})))
+       (ex-info "Unknown form encountered"
+                {:type ::unknown-form
+                 :form form})))
     (when-not (= context expected)
       (throw
        (ex-info (format "The %s form should be used inside %s definitions"
