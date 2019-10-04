@@ -68,8 +68,14 @@
   (testing "generation of ident selection clause"
     (is (= {:where [:= :user.id "some-uuid"]}
            (c/add-ident {}
-                        (-> env :schema :user)
+                        :user
                         :user/id
+                        "some-uuid"))))
+  (testing "generation of ident selection clause with table name"
+    (is (= {:where [:= :line.id "some-uuid"]}
+           (c/add-ident {}
+                        :line
+                        :line/id
                         "some-uuid")))))
 
 (deftest process-join-test

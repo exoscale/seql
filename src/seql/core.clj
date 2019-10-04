@@ -48,8 +48,8 @@
 
 (defn add-ident
   "Add a where clause for an ident"
-  [q schema ident arg]
-  (h/merge-where q [:= (table-field (:table schema) ident) arg]))
+  [q entity-name ident arg]
+  (h/merge-where q [:= (table-field entity-name ident) arg]))
 
 (defmulti process-join
   "Process join by relation type. Takes a base query, a map with
@@ -114,7 +114,7 @@
                                 ::fields   []}}
                     fields)
       (some? ident)
-      (add-ident entity-def ident (first args)))))
+      (add-ident entity-name ident (first args)))))
 
 (defn prepare-field
   "Conditionally apply field transform on field id if schema defines
