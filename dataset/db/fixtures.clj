@@ -47,7 +47,6 @@
                     (edn/read-string))]
     (jdbc/insert-multi! jdbc-config k v)))
 
-
 (defn with-db-fixtures
   [dataset]
   (fn [f]

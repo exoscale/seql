@@ -47,7 +47,6 @@
     :context ::field
     :val     [out in]}))
 
-
 (defn field
   "Define an entity field, with optional details.
    Possible detail functions include: `transform`,
@@ -145,7 +144,7 @@
   (fn [_ v] (:type v)))
 
 (defmethod merge-entity-component :field
-  [ {:keys [entity] :as schema} {:keys [field]}]
+  [{:keys [entity] :as schema} {:keys [field]}]
   (update schema :fields conj (qualify entity field)))
 
 (defmethod merge-entity-component :ident

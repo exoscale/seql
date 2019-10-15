@@ -19,5 +19,4 @@
                       (field :state (transform :keyword))))})
 
   ;; Perform queries
-  (query env :account [:account/name :account/state])
-  )
+  (query env :account [:account/name :account/state]))
