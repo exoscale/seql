@@ -298,6 +298,10 @@
   (let [entity (-> mutation namespace keyword)]
     (or (get-in env [:schema entity :listeners mutation]) {})))
 
+(defn success-result?
+  [result]
+  (pos? (first result)))
+
 (defn mutate!
   "Perform a mutation. Since mutations are spec'd, parameters are
    expected to conform it."
@@ -305,8 +309,8 @@
    (mutate! env mutation params {}))
   ([env mutation params metadata]
    (s/assert ::mutate-args [env mutation params])
-   (let [{:keys [spec handler]} (find-mutation env mutation)
-         listeners              (find-listeners env mutation)]
+   (let [{:keys [spec handler pre]} (find-mutation env mutation)
+         listeners                  (find-listeners env mutation)]
 
      (when-not (s/valid? spec params)
        (throw (ex-info (format "mutation params do not conform to %s: %s"
@@ -316,15 +320,34 @@
                         :code    400
                         :explain (s/explain-str spec params)})))
 
-     (let [result (jdbc/with-db-transaction [jdbc (:jdbc env)]
-                    (let [transform (process-transforms-fn (:schema env)
-                                                           :serialize)
-                          statement (-> (transform params)
-                                        (handler)
-                                        (sql/format))]
-                      (jdbc/execute! jdbc statement)))]
+     (let [transform (process-transforms-fn (:schema env)
+                                            :serialize)
+           transformed-params (transform params)
+           statement (-> transformed-params
+                         (handler)
+                         (sql/format))
+           result (jdbc/with-db-transaction [jdbc (:jdbc env)]
+                    ;; if we have preconditions check these first
+                    (when (seq pre)
+                      (run! (fn [{:keys [name query valid?]
+                                  :or {valid? seq}}]
+                              (let [result (jdbc/query jdbc
+                                                       (-> transformed-params
+                                                           (query)
+                                                           (sql/format)))]
+                                (when-not (valid? result)
+                                  (throw (ex-info (format "Precondition %s on mutation %s failed"
+                                                          name
+                                                          mutation)
+                                                  {:type :error/mutation-failed
+                                                   :code 409
+                                                   :mutation mutation
+                                                   :pre name
+                                                   :params params})))))
+                            pre))
+                    (jdbc/execute! jdbc statement))]
 
-       (when (< (first result) 1)
+       (when-not (success-result? result)
          (throw (ex-info (format "the mutation has failed: %s" mutation)
                          {:type     :error/mutation-failed
                           :code     404 ;; Likely the mutation has failed

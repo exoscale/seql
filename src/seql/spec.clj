@@ -84,6 +84,14 @@
 (s/def ::handler fn?)
 (s/def ::spec (s/or :kw keyword? :spec s/spec?))
 
+(create-ns 'seql.pre)
+(s/def seql.pre/name string?)
+(s/def seql.pre/handler fn?)
+(s/def seql.pre/valid? fn?)
+(s/def ::pre-condition (s/keys :req-un [:seql.pre/name :seql.pre/handler]
+                               :opt-un [:seql.pre/valid?]))
+(s/def ::pre (s/coll-of ::pre-condition))
+
 (s/def ::table keyword?)
 (s/def ::idents (s/coll-of keyword?))
 (s/def ::fields (s/coll-of keyword?))
@@ -100,7 +108,7 @@
 (s/def ::relation (s/multi-spec relation-dispatch :type))
 (s/def ::relations (s/map-of keyword? ::relation))
 
-(s/def ::mutation (s/keys :req-un [::spec ::handler]))
+(s/def ::mutation (s/keys :req-un [::spec ::handler ::pre]))
 (s/def ::mutations (s/map-of keyword? ::mutation))
 
 (s/def ::compound (s/keys :req-un [::source ::handler]))

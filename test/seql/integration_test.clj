@@ -156,3 +156,47 @@
                                        :account/state :active})
 
       (is (= 1 @calls)))))
+
+
+(deftest mutation-with-precondition
+  (let [schema {:user
+                {:entity :user
+                 :table :user
+                 :idents [:user/id]
+                 :fields [:user/id
+                          :user/name
+                          :user/email
+                          :user/account-id]
+                 :mutations {:user/create {:spec any?
+                                           :handler (fn [params]
+                                                      (-> (h/insert-into :user)
+                                                          (h/values [params])))}
+                             :user/update {:spec any?
+                                           :pre [{:name ::u0a0?
+                                                  :query (fn [user]
+                                                           (-> (h/select :*)
+                                                               (h/from :user)
+                                                               (h/where [:= :name "u0a0"]
+                                                                        [:= :id (:user/id user)])))}]
+                                           :handler
+                                           (fn [{:keys [:user/id] :as params}]
+                                             (-> (h/update :user)
+                                                 (h/sset (dissoc params :user/id))
+                                                 (h/where [:= :id id])))}}}}
+        env (assoc env :schema schema)]
+
+    (testing "we can mutate when initial precondition matches"
+      (is (seq (mutate! env :user/update {:user/id 0
+                                          :user/email "u0@a0"}))))
+
+    (testing "we cannot mutate when initial precondition matches but pre.valid? fails"
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Precondition"
+                            (mutate! (assoc-in env [:schema :user :mutations :user/update
+                                                    :pre 0 :valid?] (constantly false))
+                                     :user/update {:user/id 0
+                                                   :user/email "u0@a0"}))))
+
+    (testing "we have a invalid precondition"
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Precondition"
+                            (mutate! env :user/update {:user/id 1
+                                                       :user/email "u0@a0"}))))))
