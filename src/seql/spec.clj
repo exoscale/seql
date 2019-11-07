@@ -108,7 +108,8 @@
 (s/def ::relation (s/multi-spec relation-dispatch :type))
 (s/def ::relations (s/map-of keyword? ::relation))
 
-(s/def ::mutation (s/keys :req-un [::spec ::handler ::pre]))
+(s/def ::mutation (s/keys :req-un [::spec ::handler]
+                          :opt-un [::pre]))
 (s/def ::mutations (s/map-of keyword? ::mutation))
 
 (s/def ::compound (s/keys :req-un [::source ::handler]))
