@@ -278,9 +278,6 @@
                   (reduce (add-relation-fn g) (extract (first g)) relations)))))]
     (walk-tree fields records)))
 
-(defn rs-builder-fn
-  [rs _] (rs/as-lower-maps rs {:label-fn csk/->snake_case}))
-
 (defn query
   "Look up entities."
   ([env entity]
