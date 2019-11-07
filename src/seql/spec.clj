@@ -86,9 +86,9 @@
 
 (create-ns 'seql.pre)
 (s/def seql.pre/name string?)
-(s/def seql.pre/handler fn?)
+(s/def seql.pre/query fn?)
 (s/def seql.pre/valid? fn?)
-(s/def ::pre-condition (s/keys :req-un [:seql.pre/name :seql.pre/handler]
+(s/def ::pre-condition (s/keys :req-un [:seql.pre/name :seql.pre/query]
                                :opt-un [:seql.pre/valid?]))
 (s/def ::pre (s/coll-of ::pre-condition))
 
