@@ -1,6 +1,7 @@
 (ns seql.core
   "A way to interact with stored entities"
-  (:require [clojure.java.jdbc      :as jdbc]
+  (:require [next.jdbc              :as jdbc]
+            [next.jdbc.result-set   :as rs]
             [clojure.string         :as str]
             [clojure.spec.alpha     :as s]
             [honeysql.core          :as sql]
@@ -199,11 +200,23 @@
   "Yield a function which processes records and applies predefined
    transforms"
   [schema type]
-  (let [transforms (reduce merge {} (map #(get % :transforms) (vals schema)))
+
+  (let [;; FIXME we could imagine memoizing this,
+        ;; schemas are quite static
+        transforms (into {}
+                         (comp (map val)
+                               (map #(get % :transforms)))
+                         schema)
         extract    (case type :deserialize first :serialize second)]
     (fn [m]
-      (into {} (for [[k v] m :let [transform (extract (get transforms k))]]
-                 [k (cond-> v (and (some? v) (some? transform)) transform)])))))
+      (into {}
+            (map (fn [[k v]]
+                   (let [transform (extract (get transforms k))]
+                     [k (cond-> v
+                          (and (some? v)
+                               (some? transform))
+                          transform)])))
+            m))))
 
 (defn compound-extra-fields
   "Figure out which fields aren't needed once compounds have been
@@ -226,7 +239,11 @@
 (defn process-compounds-fn
   "Yield a schema-specific function to process compounds on the fly"
   [schema {::keys [fields]}]
-  (let [compounds    (reduce merge {} (map :compounds (vals schema)))
+  (let [;; FIXME another one we could memoize
+        compounds    (into {}
+                           (comp (map val)
+                                 (map :compounds))
+                           schema)
         extra-fields (compound-extra-fields compounds fields)]
     (fn [m]
       (->> fields
@@ -271,11 +288,13 @@
   ([env entity fields conditions]
    (s/assert ::query-args [env entity fields conditions])
    (let [[q qmeta] (sql-query env entity fields conditions)]
-     (->> (sql/format q)
-          (jdbc/query (:jdbc env))
-          (map qualify-result)
-          (map (process-transforms-fn (:schema env) :deserialize))
-          (map (process-compounds-fn (:schema env) qmeta))
+     (->> (jdbc/plan (:jdbc env) (sql/format q))
+          (into [] (comp
+                    (map qualify-result)
+                    (map (process-transforms-fn (:schema env)
+                                                :deserialize))
+                    (map (process-compounds-fn (:schema env)
+                                               qmeta))))
           (recompose-relations fields)
           (extract-ident entity)))))
 
@@ -300,7 +319,8 @@
 
 (defn success-result?
   [result]
-  (pos? (first result)))
+  (some-> result first :next.jdbc/update-count pos?))
+
 
 (defn mutate!
   "Perform a mutation. Since mutations are spec'd, parameters are
@@ -319,22 +339,21 @@
                        {:type    :error/illegal-argument
                         :code    400
                         :explain (s/explain-str spec params)})))
-
      (let [transform (process-transforms-fn (:schema env)
                                             :serialize)
            transformed-params (transform params)
            statement (-> transformed-params
                          (handler)
                          (sql/format))
-           result (jdbc/with-db-transaction [jdbc (:jdbc env)]
+           result (jdbc/with-transaction [jdbc (:jdbc env)]
                     ;; if we have preconditions check these first
                     (when (seq pre)
                       (run! (fn [{:keys [name query valid?]
                                   :or {valid? seq}}]
-                              (let [result (jdbc/query jdbc
-                                                       (-> transformed-params
-                                                           (query)
-                                                           (sql/format)))]
+                              (let [result (jdbc/execute! jdbc
+                                                          (-> transformed-params
+                                                              (query)
+                                                              (sql/format)))]
                                 (when-not (valid? result)
                                   (throw (ex-info (format "Precondition %s on mutation %s failed"
                                                           name
@@ -346,7 +365,6 @@
                                                    :params params})))))
                             pre))
                     (jdbc/execute! jdbc statement))]
-
        (when-not (success-result? result)
          (throw (ex-info (format "the mutation has failed: %s" mutation)
                          {:type     :error/mutation-failed
@@ -362,6 +380,7 @@
                           :params   params
                           :metadata metadata}))
              listeners)
+
        result))))
 
 ;; Environment modifiers
