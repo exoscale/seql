@@ -1,5 +1,5 @@
-{:deps  {org.clojure/clojure   {:mvn/version "1.10.1"}
-         org.clojure/java.jdbc {:mvn/version "0.7.10"}
-         honeysql              {:mvn/version "0.9.8"}
-         camel-snake-kebab     {:mvn/version "0.4.0"}}
+{:deps  {org.clojure/clojure    {:mvn/version "1.10.1"}
+         seancorfield/next.jdbc {:mvn/version "1.0.9"}
+         honeysql               {:mvn/version "0.9.8"}
+         camel-snake-kebab      {:mvn/version "0.4.0"}}
  :paths ["src"]}
