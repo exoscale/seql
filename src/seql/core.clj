@@ -349,7 +349,8 @@
                     ;; if we have preconditions check these first
                     (when (seq pre)
                       (run! (fn [{:keys [name query valid?]
-                                  :or {valid? seq}}]
+                                  :or {valid? seq}
+                                  :as pre}]
                               (let [result (jdbc/execute! jdbc
                                                           (-> transformed-params
                                                               (query)
@@ -361,8 +362,8 @@
                                                   {:type :error/mutation-failed
                                                    :code 409
                                                    :mutation mutation
-                                                   :pre name
-                                                   :params params})))))
+                                                   :params params
+                                                   :pre (dissoc pre :valid? :query)})))))
                             pre))
                     (jdbc/execute! jdbc statement))]
        (when-not (success-result? result)
