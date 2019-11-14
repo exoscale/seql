@@ -349,7 +349,8 @@
                     ;; if we have preconditions check these first
                     (when (seq pre)
                       (run! (fn [{:keys [name query valid?]
-                                  :or {valid? seq}}]
+                                  :or {valid? seq}
+                                  :as pre}]
                               (let [result (jdbc/execute! jdbc
                                                           (-> transformed-params
                                                               (query)
