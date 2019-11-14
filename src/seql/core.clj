@@ -361,8 +361,8 @@
                                                   {:type :error/mutation-failed
                                                    :code 409
                                                    :mutation mutation
-                                                   :pre name
-                                                   :params params})))))
+                                                   :params params
+                                                   :pre (dissoc pre :valid? :query)})))))
                             pre))
                     (jdbc/execute! jdbc statement))]
        (when-not (success-result? result)
