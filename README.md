@@ -20,7 +20,7 @@ joins performed.
 With this rationale in mind, **seql** was built to provide:
 
 - A data-based schema syntax to describe entities stored in SQL, as
-  well as there relations to each other, making no assumptions on the
+  well as their relations to each other, making no assumptions on the
   database layout
 - A subset of the schema dedicated to expressing mutations and their
   input to allow for validation at the edge
