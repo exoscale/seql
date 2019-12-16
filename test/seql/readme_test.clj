@@ -272,5 +272,5 @@
         (mutate! env :account/create {:account/name "a4" :account/state :active})
 
         (is (= {:mutation :account/create
-                :result   [1]}
+                :result   [{:next.jdbc/update-count 1}]}
                @last-result))))))
