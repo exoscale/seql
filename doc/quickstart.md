@@ -1,6 +1,6 @@
 ## Quickstart
 
-Let us assume the following - admitedly flawed - schema, for which we
+Let us assume the following - admittedly flawed - schema, for which we
 will add gradual support:
 
 ![schema](https://i.imgur.com/DkBtyew.png)
@@ -16,7 +16,7 @@ manner:
 ```clojure
 (def env {:schema ... :jdbc your-database-config})
 (require '[seql.core :refer [query mutate! add-listener!]])
-(require '[seql.helpers :refer [schema ident field compound mutation
+(require '[seql.helpers :refer [make-schema ident field compound mutation
                                 transform has-many condition entity]])
 ```
 
@@ -28,7 +28,7 @@ database.
 At first, accounts need to be looked up. We can build a minimal schema:
 
 ```clojure
-(schema
+(make-schema
   (entity :account
           (field :id (ident))
 		  (field :name)
@@ -76,7 +76,7 @@ While this works, our schema can be improved in two ways:
 - It could be interesting to be able to add conditions
 
 ```clojure
-(schema
+(make-schema
   (entity :account
     (field :id (ident))
     (field :name (ident))
@@ -117,7 +117,7 @@ before building larger nested trees. Since no assumption is made on
 schemas, the relations must specify foreign keys explictly:
 
 ```clojure
-(schema
+(make-schema
    (entity :account
      (field :id (ident))
      (field :name (ident))
@@ -129,7 +129,7 @@ schemas, the relations must specify foreign keys explictly:
    (entity :user
      (field :id (ident))
      (field :name (ident))
-     (field :email))
+     (field :email)))
 ```
 
 This will allow doing tree lookups, fetching arbitrary fields from the
@@ -167,7 +167,7 @@ Looking at our schema, the `state` field of the `invoice` table can
 easily be converted into a boolean:
 
 ```clojure
-(schema
+(make-schema
   (entity :invoice
           (field :id (ident))
           (field :state (transform :keyword))
@@ -208,7 +208,7 @@ schema:
 
 
 ```clojure
-(schema
+(make-schema
  (entity :account
          (field :id          (ident))
          (field :name        (ident))
@@ -312,7 +312,7 @@ transactions with a map of:
   [details]
   (reset! last-result (select-keys details [:mutation :result])))
 
-(let [env (add-listener! env store-result)]
+(let [env (add-listener! env :account/create store-result)]
    (mutate! env :account/create {:account/name "a4"
                                  :account/state :active}))
 
