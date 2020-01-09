@@ -1,6 +1,6 @@
 ## Quickstart
 
-Let us assume the following - admitedly flawed - schema, for which we
+Let us assume the following - admittedly flawed - schema, for which we
 will add gradual support:
 
 ![schema](https://i.imgur.com/DkBtyew.png)
@@ -129,7 +129,7 @@ schemas, the relations must specify foreign keys explictly:
    (entity :user
      (field :id (ident))
      (field :name (ident))
-     (field :email))
+     (field :email)))
 ```
 
 This will allow doing tree lookups, fetching arbitrary fields from the
