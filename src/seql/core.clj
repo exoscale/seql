@@ -300,15 +300,11 @@
    (s/assert ::query-args [env entity fields conditions])
    (let [[q qmeta] (sql-query env entity fields conditions)
          schema    (:schema env)]
-     (->> (jdbc/plan (:jdbc env) (sql/format q)
-
-                     )
+     (->> (jdbc/plan (:jdbc env) (sql/format q))
           (into [] (comp
                     (map qualify-result)
-                    (map (process-transforms-fn schema
-                                                :deserialize))
-                    (map (process-compounds-fn schema
-                                               qmeta))))
+                    (map (process-transforms-fn schema :deserialize))
+                    (map (process-compounds-fn schema qmeta))))
           (recompose-relations schema fields)
           (extract-ident entity)))))
 
