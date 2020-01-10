@@ -1,7 +1,7 @@
 (ns seql.core-test
   (:require [seql.core    :as c]
             [seql.helpers :refer [make-schema ident field compound
-                                  mutation transform has-many condition
+                                  mutation transform has-many has-one condition
                                   entity]]
             [clojure.test :refer [use-fixtures testing deftest is]]
             [db.fixtures  :refer [with-db-fixtures]]))
@@ -33,9 +33,12 @@
 
            (condition :unpaid  :state :unpaid)
            (condition :paid    :state :paid))
+   (entity :product
+           (field :id (ident))
+           (field :name (ident)))
    (entity [:line :invoiceline]
            (field :id          (ident))
-           (field :product)
+           (has-one :product [:product-id :product/id])
            (field :quantity))))
 
 (def env

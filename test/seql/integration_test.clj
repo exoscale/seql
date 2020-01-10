@@ -2,7 +2,7 @@
   (:require [seql.core          :refer [query mutate!
                                         add-listener! remove-listener!]]
             [seql.helpers       :refer [make-schema ident field compound
-                                        mutation transform has-many condition
+                                        mutation transform has-many has-one condition
                                         entity]]
             [db.fixtures        :refer [jdbc-config with-db-fixtures]]
             [clojure.test       :refer [use-fixtures testing deftest is]]
@@ -53,9 +53,12 @@
 
            (condition :unpaid  :state :unpaid)
            (condition :paid    :state :paid))
+   (entity :product
+           (field :id (ident))
+           (field :name (ident)))
    (entity [:line :invoiceline]
            (field :id          (ident))
-           (field :product)
+           (has-one :product [:product-id :product/id])
            (field :quantity))))
 
 (def env {:schema schema :jdbc jdbc-config})
@@ -122,6 +125,14 @@
     (testing "two accounts are active"
       (is (= [{:account/name "a0"} {:account/name "a1"} {:account/name "a3"}]
              (query @store :account [:account/name] [[:account/active]]))))
+
+    (testing "unpaid invoices"
+      (is (= [{:invoice/total 2
+               :invoice/lines [{:line/quantity 1 :line/product {:product/id 0 :product/name "p"}}
+                               {:line/quantity 2 :line/product {:product/id 1 :product/name "q"}}]}]
+             (query @store :invoice
+                    [:invoice/total {:invoice/lines [:line/quantity {:line/product [:product/id :product/name]}]}]
+                    [[:invoice/unpaid]]))))
 
     (testing "can register listener and register is called"
       (reset! calls 0)

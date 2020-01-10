@@ -17,7 +17,7 @@
                    {:a/id 7}
                    {:a/id 8}
                    {:a/id 9}]]
-      (is (= records (recompose-relations fields (shuffle records))))))
+      (is (= records (recompose-relations {}  fields (shuffle records))))))
 
   (testing "simple one layer recomposition"
     (let [records [{:account/id 0 :user/id 0}
@@ -42,8 +42,8 @@
                                                   {:user/id 8}
                                                   {:user/id 9}]}]]
 
-      (is (= result (recompose-relations fields records)))
-      (is (= result (recompose-relations fields (shuffle records))))))
+      (is (= result (recompose-relations {}  fields records)))
+      (is (= result (recompose-relations {}  fields (shuffle records))))))
 
   (testing "two layer recomposition"
     (let [records [{:a/id 0 :b/id 0 :c/id 0}
@@ -75,8 +75,8 @@
                           {:b/id 4 :b/c [{:c/id 12} {:c/id 13} {:c/id 14}]}
                           {:b/id 5 :b/c [{:c/id 15} {:c/id 16} {:c/id 17}]}]}]]
 
-      (is (= result (recompose-relations fields records)))
-      (is (= result (recompose-relations fields (shuffle records))))))
+      (is (= result (recompose-relations {}  fields records)))
+      (is (= result (recompose-relations {}  fields (shuffle records))))))
 
   (testing "parallel recomposition"
     (let [records [{:a/id 0 :b/id 0 :c/id 0}
@@ -108,8 +108,8 @@
                           {:b/id 4 :b/c [{:c/id 12} {:c/id 13} {:c/id 14}]}
                           {:b/id 5 :b/c [{:c/id 15} {:c/id 16} {:c/id 17}]}]}]]
 
-      (is (= result (recompose-relations fields records)))
-      (is (= result (recompose-relations fields (shuffle records))))))
+      (is (= result (recompose-relations {}  fields records)))
+      (is (= result (recompose-relations {}  fields (shuffle records))))))
 
   (testing "weeding out empty nested entities"
 
@@ -124,7 +124,7 @@
           result [{:a 1 :b [{:b 4} {:b 5} {:b 6}] :c []}
                   {:a 2 :b []                     :c []}]]
 
-      (is (= result (recompose-relations fields (shuffle records)))))
+      (is (= result (recompose-relations {} fields (shuffle records)))))
 
     (let [records [{:a 4 :b nil :c 1}
                    {:a 3 :b 7 :c 2}
@@ -132,4 +132,4 @@
           fields [:a {:b [:b]} {:c [:c]}]
           result [{:a 3 :b [{:b 7} {:b 8}] :c [{:c 2}]}
                   {:a 4 :b []              :c [{:c 1}]}]]
-      (is (= result (recompose-relations fields (shuffle records)))))))
+      (is (= result (recompose-relations {}  fields (shuffle records)))))))

@@ -22,6 +22,7 @@
          "DROP TABLE IF EXISTS user"
          "DROP TABLE IF EXISTS invoice"
          "DROP TABLE IF EXISTS invoiceline"
+         "DROP TABLE IF EXISTS product"
          (create-table-ddl
           :account
           [[:id "int not null auto_increment"]
@@ -40,10 +41,14 @@
            [:state "varchar(32) not null"]
            [:total "int"]])
          (create-table-ddl
+          :product
+          [[:id "int not null auto_increment"]
+           [:name "varchar(32) not null"]])
+         (create-table-ddl
           :invoiceline
           [[:id "int not null auto_increment"]
            [:invoice_id "int not null"]
-           [:product "varchar(32) not null"]
+           [:product_id "int not null"]
            [:quantity "int"]])]))
 
 (defn load-fixtures
@@ -54,7 +59,7 @@
                     (slurp)
                     (edn/read-string))]
     (sql/insert-multi! jdbc-config
-                       k
+                         k
                        h
                        r)))
 
