@@ -112,8 +112,8 @@ We can now perform the following query:
 ### Adding a relation
 
 For queries, **seql**'s strength lies in its ability to understand the
-way entities are tied together. Let's start with a single relation
-before building larger nested trees. Since no assumption is made on
+way entities are tied together. **Seql** offres support for one-to-many (has-many ) and one-to-one (has-one) relations.
+Let's start with a single relation before building larger nested trees. Since no assumption is made on
 schemas, the relations must specify foreign keys explictly:
 
 ```clojure
@@ -234,9 +234,13 @@ schema:
          (condition :unpaid  :state :unpaid)
          (condition :paid    :state :paid))
 
+ (entity :product
+           (field :id (ident))
+           (field :name (ident)))
+
  (entity [:line :invoiceline]
          (field :id          (ident))
-         (field :product)
+         (has-one :product [:product-id :product/id])
          (field :quantity)))
 ```
 

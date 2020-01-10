@@ -2,7 +2,7 @@
   "Reproduces examples provided in the README"
   (:require [seql.core     :refer [query mutate! add-listener!]]
             [seql.helpers  :refer [make-schema ident field compound mutation
-                                   transform has-many condition entity]]
+                                   transform has-many has-one condition entity]]
             [db.fixtures   :refer [jdbc-config with-db-fixtures]]
             [clojure.test  :refer [use-fixtures testing deftest is]]
             [clojure.spec.test.alpha :as st]
@@ -139,9 +139,13 @@
                         (condition :unpaid  :state :unpaid)
                         (condition :paid    :state :paid))
 
+                (entity :product
+                        (field :id (ident))
+                        (field :name (ident)))
+
                 (entity [:line :invoiceline]
                         (field :id          (ident))
-                        (field :product)
+                        (has-one :product [:product-id :product/id])
                         (field :quantity)))
         env {:schema schema :jdbc jdbc-config}]
 
@@ -192,14 +196,14 @@
               :account/invoices [{:invoice/id    3
                                   :invoice/total 4
                                   :invoice/lines [{:line/quantity 20
-                                                   :line/product  "z"}]}]}
+                                                   :line/product  {:product/name "z"}}]}]}
              (query env
                     [:account/name "a1"]
                     [:account/name
                      {:account/invoices [:invoice/id
                                          :invoice/total
                                          {:invoice/lines [:line/quantity
-                                                          :line/product]}]}]))))))
+                                                          {:line/product [:product/name]}]}]}]))))))
 
 (deftest sixth-schema-test
   (let [schema (make-schema

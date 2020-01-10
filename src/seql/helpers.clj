@@ -79,6 +79,18 @@
     :remote-id     remote
     :local-id      local}])
 
+(defn has-one
+  "Express a one to one relation between the current
+   entity and a remote one, expects a tuple of local
+   ID to (qualified) remote ID."
+  [field [local remote]]
+  [{:type          :one-to-one
+    :context       ::entity
+    :field         field
+    :remote-entity (keyword (namespace remote))
+    :remote-id     remote
+    :local-id      local}])
+
 (defn condition
   "Build a condition which can be used to filter results
    at the database layer.
@@ -162,6 +174,16 @@
              :handler handler}))
 
 (defmethod merge-entity-component :one-to-many
+  [{:keys [entity] :as schema} {:keys [field] :as rel}]
+  (update schema :relations
+          assoc
+          (qualify entity field)
+          (-> rel
+              (update :local-id (partial qualify entity))
+              (dissoc :field :context))))
+
+
+(defmethod merge-entity-component :one-to-one
   [{:keys [entity] :as schema} {:keys [field] :as rel}]
   (update schema :relations
           assoc

@@ -66,6 +66,14 @@
            (transform-for-join local-id)
            (transform-for-join (or remote-name remote-id))]))
 
+(defmethod process-join :one-to-one
+  [q {:keys [entity table]} {:keys [local-id remote-id remote-name]}]
+  (update q :left-join conj
+          [table entity]
+          [:=
+           (transform-for-join local-id)
+           (transform-for-join (or remote-name remote-id))]))
+
 (defn process-field
   "Add necessary stanzas to realize field targeting with SQL"
   [schema {:keys [relations compounds fields entity]}]
@@ -256,14 +264,17 @@
   "The join query perfomed by `query` returns a flat list of entries,
    potentially unsorted (this is database implementation specific)
    recompose a tree of entities as specified in fields.
-
    "
-  [fields records]
+  [schema fields records]
   (letfn [(add-relation-fn [group]
             (fn [record relation]
-              (let [rel-key    (first (keys relation))
-                    rel-fields (first (vals relation))]
-                (assoc record rel-key (walk-tree rel-fields group)))))
+              (let [rel-key       (first (keys relation))
+                    rel-namespace (-> rel-key namespace keyword)
+                    rel-fields    (first (vals relation))
+                    rel-type      (get-in schema [rel-namespace :relations rel-key :type])]
+                (if (= :one-to-one rel-type)
+                  (assoc record rel-key (first (walk-tree rel-fields group)))
+                  (assoc record rel-key (walk-tree rel-fields group))))))
           (walk-tree [fields records]
             (let [plain-fields (remove map? fields)
                   relations    (filter map? fields)
@@ -287,15 +298,18 @@
    (query env entity fields []))
   ([env entity fields conditions]
    (s/assert ::query-args [env entity fields conditions])
-   (let [[q qmeta] (sql-query env entity fields conditions)]
-     (->> (jdbc/plan (:jdbc env) (sql/format q))
+   (let [[q qmeta] (sql-query env entity fields conditions)
+         schema    (:schema env)]
+     (->> (jdbc/plan (:jdbc env) (sql/format q)
+
+                     )
           (into [] (comp
                     (map qualify-result)
-                    (map (process-transforms-fn (:schema env)
+                    (map (process-transforms-fn schema
                                                 :deserialize))
-                    (map (process-compounds-fn (:schema env)
+                    (map (process-compounds-fn schema
                                                qmeta))))
-          (recompose-relations fields)
+          (recompose-relations schema fields)
           (extract-ident entity)))))
 
 ;; Mutation support
