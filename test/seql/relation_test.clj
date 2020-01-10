@@ -78,7 +78,6 @@
       (is (= result (recompose-relations fields records)))
       (is (= result (recompose-relations fields (shuffle records))))))
 
-
   (testing "parallel recomposition"
     (let [records [{:a/id 0 :b/id 0 :c/id 0}
                    {:a/id 0 :b/id 0 :c/id 1}

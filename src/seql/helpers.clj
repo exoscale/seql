@@ -47,7 +47,6 @@
     :context ::field
     :val     [out in]}))
 
-
 (defn field
   "Define an entity field, with optional details.
    Possible detail functions include: `transform`,
@@ -74,6 +73,18 @@
    ID to (qualified) remote ID."
   [field [local remote]]
   [{:type          :one-to-many
+    :context       ::entity
+    :field         field
+    :remote-entity (keyword (namespace remote))
+    :remote-id     remote
+    :local-id      local}])
+
+(defn has-one
+  "Express a one to one relation between the current
+   entity and a remote one, expects a tuple of local
+   ID to (qualified) remote ID."
+  [field [local remote]]
+  [{:type          :one-to-one
     :context       ::entity
     :field         field
     :remote-entity (keyword (namespace remote))
@@ -145,7 +156,7 @@
   (fn [_ v] (:type v)))
 
 (defmethod merge-entity-component :field
-  [ {:keys [entity] :as schema} {:keys [field]}]
+  [{:keys [entity] :as schema} {:keys [field]}]
   (update schema :fields conj (qualify entity field)))
 
 (defmethod merge-entity-component :ident
@@ -163,6 +174,15 @@
              :handler handler}))
 
 (defmethod merge-entity-component :one-to-many
+  [{:keys [entity] :as schema} {:keys [field] :as rel}]
+  (update schema :relations
+          assoc
+          (qualify entity field)
+          (-> rel
+              (update :local-id (partial qualify entity))
+              (dissoc :field :context))))
+
+(defmethod merge-entity-component :one-to-one
   [{:keys [entity] :as schema} {:keys [field] :as rel}]
   (update schema :relations
           assoc

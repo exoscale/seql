@@ -1,16 +1,24 @@
-{:account [{:id 0 :name "a0" :state "active"}
-           {:id 1 :name "a1" :state "active"}
-           {:id 2 :name "a2" :state "suspended"}]
- :user [{:id 0 :account_id 0 :name "u0a0" :email "u0@a0"}
-        {:id 1 :account_id 0 :name "u1a0" :email "u1@a0"}
-        {:id 2 :account_id 1 :name "u2a1" :email "u2@a1"}
-        {:id 3 :account_id 1 :name "u3a1" :email "u3@a1"}]
- :invoice [{:id 0 :account_id 0 :state "unpaid" :total 2}
-           {:id 1 :account_id 0 :state "paid" :total 2}
-           {:id 2 :account_id 2 :state "paid" :total 2}
-           {:id 3 :account_id 1 :state "paid" :total 4}]
- :invoiceline [{:id 0 :invoice_id 0 :product "p" :quantity 1}
-               {:id 1 :invoice_id 0 :product "q" :quantity 2}
-               {:id 2 :invoice_id 1 :product "p" :quantity 2}
-               {:id 3 :invoice_id 2 :product "p" :quantity 2}
-               {:id 4 :invoice_id 3 :product "z" :quantity 20}]}
+{:account     [[:id :name :state]
+               [0 "a0" "active"]
+               [1 "a1" "active"]
+               [2 "a2" "suspended"]]
+ :user        [[:id :account_id :name :email]
+               [0 0 "u0a0" "u0@a0"]
+               [1 0 "u1a0" "u1@a0"]
+               [2 1 "u2a1" "u2@a1"]
+               [3 1 "u3a1" "u3@a1"]]
+ :invoice     [[:id :account_id :state :total]
+               [0 0 "unpaid" 2]
+               [1 0 "paid" 2]
+               [2 2 "paid" 2]
+               [3 1 "paid" 4]]
+ :product     [[:id :name]
+               [0 "p"]
+               [1 "q"]
+               [2 "z"]]
+ :invoiceline [[:id :invoice_id :product_id :quantity]
+               [0 0 0 1]
+               [1 0 1 2]
+               [2 1 0 2]
+               [3 2 0 2]
+               [4 3 2 20]]}

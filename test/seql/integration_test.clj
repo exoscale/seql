@@ -2,7 +2,7 @@
   (:require [seql.core          :refer [query mutate!
                                         add-listener! remove-listener!]]
             [seql.helpers       :refer [make-schema ident field compound
-                                        mutation transform has-many condition
+                                        mutation transform has-many has-one condition
                                         entity]]
             [db.fixtures        :refer [jdbc-config with-db-fixtures]]
             [clojure.test       :refer [use-fixtures testing deftest is]]
@@ -24,7 +24,6 @@
            (field :state       (transform :keyword))
            (has-many :users    [:id :user/account-id])
            (has-many :invoices [:id :invoice/account-id])
-
            (condition :active  :state :active)
            (condition :state)
 
@@ -50,12 +49,14 @@
            (field :total)
            (compound :paid?    [state] (= state :paid))
            (has-many :lines    [:id :line/invoice-id])
-
            (condition :unpaid  :state :unpaid)
            (condition :paid    :state :paid))
+   (entity :product
+           (field :id (ident))
+           (field :name (ident)))
    (entity [:line :invoiceline]
            (field :id          (ident))
-           (field :product)
+           (has-one :product [:product-id :product/id])
            (field :quantity))))
 
 (def env {:schema schema :jdbc jdbc-config})
@@ -72,7 +73,6 @@
                   [:account/name "a3"]
                   [:account/name {:account/invoices [:invoice/id
                                                      :invoice/state]}])))))
-
 (deftest insert-account-test
   (testing "cannot retrieve account 3"
     (is (nil? (query env [:account/id 3]
@@ -111,17 +111,25 @@
       (is (nil? (query @store [:account/id 3] [:account/name]))))
 
     (testing "inserting additional account"
-      (mutate! @store :account/create {:account/name  "a3"
-                                       :account/state :active}))
+        (mutate! @store :account/create {:account/name  "a3"
+                                         :account/state :active}))
 
     (testing "can retrieve account 3"
-      (is (= {:account/name  "a3"
-              :account/state :active}
+        (is (= {:account/name  "a3"
+                :account/state :active}
              (query @store [:account/id 3] [:account/name :account/state]))))
 
     (testing "two accounts are active"
-      (is (= [{:account/name "a0"} {:account/name "a1"} {:account/name "a3"}]
+        (is (= [{:account/name "a0"} {:account/name "a1"} {:account/name "a3"}]
              (query @store :account [:account/name] [[:account/active]]))))
+
+    (testing "unpaid invoices"
+      (is (= [{:invoice/total 2
+               :invoice/lines [{:line/quantity 1 :line/product {:product/id 0 :product/name "p"}}
+                               {:line/quantity 2 :line/product {:product/id 1 :product/name "q"}}]}]
+             (query @store :invoice
+                    [:invoice/total {:invoice/lines [:line/quantity {:line/product [:product/id :product/name]}]}]
+                    [[:invoice/unpaid]]))))
 
     (testing "can register listener and register is called"
       (reset! calls 0)
@@ -156,3 +164,47 @@
                                        :account/state :active})
 
       (is (= 1 @calls)))))
+
+
+(deftest mutation-with-precondition
+  (let [schema {:user
+                {:entity :user
+                 :table :user
+                 :idents [:user/id]
+                 :fields [:user/id
+                          :user/name
+                          :user/email
+                          :user/account-id]
+                 :mutations {:user/create {:spec any?
+                                           :handler (fn [params]
+                                                      (-> (h/insert-into :user)
+                                                          (h/values [params])))}
+                             :user/update {:spec any?
+                                           :pre [{:name ::u0a0?
+                                                  :query (fn [user]
+                                                           (-> (h/select :*)
+                                                               (h/from :user)
+                                                               (h/where [:= :name "u0a0"]
+                                                                        [:= :id (:user/id user)])))}]
+                                           :handler
+                                           (fn [{:keys [:user/id] :as params}]
+                                             (-> (h/update :user)
+                                                 (h/sset (dissoc params :user/id))
+                                                 (h/where [:= :id id])))}}}}
+        env (assoc env :schema schema)]
+
+    (testing "we can mutate when initial precondition matches"
+      (is (seq (mutate! env :user/update {:user/id 0
+                                          :user/email "u0@a0"}))))
+
+    (testing "we cannot mutate when initial precondition matches but pre.valid? fails"
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Precondition"
+                            (mutate! (assoc-in env [:schema :user :mutations :user/update
+                                                    :pre 0 :valid?] (constantly false))
+                                     :user/update {:user/id 0
+                                                   :user/email "u0@a0"}))))
+
+    (testing "we have a invalid precondition"
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Precondition"
+                            (mutate! env :user/update {:user/id 1
+                                                       :user/email "u0@a0"}))))))

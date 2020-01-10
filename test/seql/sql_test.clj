@@ -26,9 +26,9 @@
                   :fields [:c/id]}}}]
 
     (testing "basic single-layer query"
-        (is (= ["SELECT a.id AS a__id FROM a a    "]
-               (sql/format
-                (sql-query env :a [:a/id] [])))))
+      (is (= ["SELECT a.id AS a__id FROM a a    "]
+             (sql/format
+              (sql-query env :a [:a/id] [])))))
 
     (testing "query for one nested entity"
       (is (= [(str "SELECT a.id AS a__id, b.id AS b__id "

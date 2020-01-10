@@ -1,6 +1,7 @@
 (ns seql.core
   "A way to interact with stored entities"
-  (:require [clojure.java.jdbc      :as jdbc]
+  (:require [next.jdbc              :as jdbc]
+            [next.jdbc.result-set   :as rs]
             [clojure.string         :as str]
             [clojure.spec.alpha     :as s]
             [honeysql.core          :as sql]
@@ -58,6 +59,14 @@
   #(:type %3))
 
 (defmethod process-join :one-to-many
+  [q {:keys [entity table]} {:keys [local-id remote-id remote-name]}]
+  (update q :left-join conj
+          [table entity]
+          [:=
+           (transform-for-join local-id)
+           (transform-for-join (or remote-name remote-id))]))
+
+(defmethod process-join :one-to-one
   [q {:keys [entity table]} {:keys [local-id remote-id remote-name]}]
   (update q :left-join conj
           [table entity]
@@ -199,11 +208,23 @@
   "Yield a function which processes records and applies predefined
    transforms"
   [schema type]
-  (let [transforms (reduce merge {} (map #(get % :transforms) (vals schema)))
+
+  (let [;; FIXME we could imagine memoizing this,
+        ;; schemas are quite static
+        transforms (into {}
+                         (comp (map val)
+                               (map #(get % :transforms)))
+                         schema)
         extract    (case type :deserialize first :serialize second)]
     (fn [m]
-      (into {} (for [[k v] m :let [transform (extract (get transforms k))]]
-                 [k (cond-> v (and (some? v) (some? transform)) transform)])))))
+      (into {}
+            (map (fn [[k v]]
+                   (let [transform (extract (get transforms k))]
+                     [k (cond-> v
+                          (and (some? v)
+                               (some? transform))
+                          transform)])))
+            m))))
 
 (defn compound-extra-fields
   "Figure out which fields aren't needed once compounds have been
@@ -226,7 +247,11 @@
 (defn process-compounds-fn
   "Yield a schema-specific function to process compounds on the fly"
   [schema {::keys [fields]}]
-  (let [compounds    (reduce merge {} (map :compounds (vals schema)))
+  (let [;; FIXME another one we could memoize
+        compounds    (into {}
+                           (comp (map val)
+                                 (map :compounds))
+                           schema)
         extra-fields (compound-extra-fields compounds fields)]
     (fn [m]
       (->> fields
@@ -239,14 +264,17 @@
   "The join query perfomed by `query` returns a flat list of entries,
    potentially unsorted (this is database implementation specific)
    recompose a tree of entities as specified in fields.
-
    "
-  [fields records]
+  [schema fields records]
   (letfn [(add-relation-fn [group]
             (fn [record relation]
-              (let [rel-key    (first (keys relation))
-                    rel-fields (first (vals relation))]
-                (assoc record rel-key (walk-tree rel-fields group)))))
+              (let [rel-key       (first (keys relation))
+                    rel-namespace (-> rel-key namespace keyword)
+                    rel-fields    (first (vals relation))
+                    rel-type      (get-in schema [rel-namespace :relations rel-key :type])]
+                (if (= :one-to-one rel-type)
+                  (assoc record rel-key (first (walk-tree rel-fields group)))
+                  (assoc record rel-key (walk-tree rel-fields group))))))
           (walk-tree [fields records]
             (let [plain-fields (remove map? fields)
                   relations    (filter map? fields)
@@ -270,13 +298,18 @@
    (query env entity fields []))
   ([env entity fields conditions]
    (s/assert ::query-args [env entity fields conditions])
-   (let [[q qmeta] (sql-query env entity fields conditions)]
-     (->> (sql/format q)
-          (jdbc/query (:jdbc env))
-          (map qualify-result)
-          (map (process-transforms-fn (:schema env) :deserialize))
-          (map (process-compounds-fn (:schema env) qmeta))
-          (recompose-relations fields)
+   (let [[q qmeta] (sql-query env entity fields conditions)
+         schema    (:schema env)]
+     (->> (jdbc/plan (:jdbc env) (sql/format q)
+
+                     )
+          (into [] (comp
+                    (map qualify-result)
+                    (map (process-transforms-fn schema
+                                                :deserialize))
+                    (map (process-compounds-fn schema
+                                               qmeta))))
+          (recompose-relations (:schema env) fields)
           (extract-ident entity)))))
 
 ;; Mutation support
@@ -298,6 +331,11 @@
   (let [entity (-> mutation namespace keyword)]
     (or (get-in env [:schema entity :listeners mutation]) {})))
 
+(defn success-result?
+  [result]
+  (some-> result first :next.jdbc/update-count pos?))
+
+
 (defn mutate!
   "Perform a mutation. Since mutations are spec'd, parameters are
    expected to conform it."
@@ -305,8 +343,8 @@
    (mutate! env mutation params {}))
   ([env mutation params metadata]
    (s/assert ::mutate-args [env mutation params])
-   (let [{:keys [spec handler]} (find-mutation env mutation)
-         listeners              (find-listeners env mutation)]
+   (let [{:keys [spec handler pre]} (find-mutation env mutation)
+         listeners                  (find-listeners env mutation)]
 
      (when-not (s/valid? spec params)
        (throw (ex-info (format "mutation params do not conform to %s: %s"
@@ -315,16 +353,34 @@
                        {:type    :error/illegal-argument
                         :code    400
                         :explain (s/explain-str spec params)})))
-
-     (let [result (jdbc/with-db-transaction [jdbc (:jdbc env)]
-                    (let [transform (process-transforms-fn (:schema env)
-                                                           :serialize)
-                          statement (-> (transform params)
-                                        (handler)
-                                        (sql/format))]
-                      (jdbc/execute! jdbc statement)))]
-
-       (when (< (first result) 1)
+     (let [transform (process-transforms-fn (:schema env)
+                                            :serialize)
+           transformed-params (transform params)
+           statement (-> transformed-params
+                         (handler)
+                         (sql/format))
+           result (jdbc/with-transaction [jdbc (:jdbc env)]
+                    ;; if we have preconditions check these first
+                    (when (seq pre)
+                      (run! (fn [{:keys [name query valid?]
+                                  :or {valid? seq}
+                                  :as pre}]
+                              (let [result (jdbc/execute! jdbc
+                                                          (-> transformed-params
+                                                              (query)
+                                                              (sql/format)))]
+                                (when-not (valid? result)
+                                  (throw (ex-info (format "Precondition %s on mutation %s failed"
+                                                          name
+                                                          mutation)
+                                                  {:type :error/mutation-failed
+                                                   :code 409
+                                                   :mutation mutation
+                                                   :params params
+                                                   :pre (dissoc pre :valid? :query)})))))
+                            pre))
+                    (jdbc/execute! jdbc statement))]
+       (when-not (success-result? result)
          (throw (ex-info (format "the mutation has failed: %s" mutation)
                          {:type     :error/mutation-failed
                           :code     404 ;; Likely the mutation has failed
@@ -339,6 +395,7 @@
                           :params   params
                           :metadata metadata}))
              listeners)
+
        result))))
 
 ;; Environment modifiers

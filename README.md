@@ -7,9 +7,7 @@ seql: Simplified EDN Query Language
 [EQL](https://edn-query-language.org/) inspired query language to
 access entities stored in traditional SQL databases.
 
-```clojure
-[[exoscale/seql "0.1.2"]]
-```
+[![Clojars Project](https://img.shields.io/clojars/v/exoscale/seql.svg)](https://clojars.org/exoscale/seql)
 
 ## Introduction
 
@@ -22,7 +20,7 @@ joins performed.
 With this rationale in mind, **seql** was built to provide:
 
 - A data-based schema syntax to describe entities stored in SQL, as
-  well as there relations to each other, making no assumptions on the
+  well as their relations to each other, making no assumptions on the
   database layout
 - A subset of the schema dedicated to expressing mutations and their
   input to allow for validation at the edge
@@ -39,7 +37,7 @@ query results
        [:account/name
 	    :account/state
 		{:account/users [:user/email]}])
-		
+
 ;; =>
 
 [#:account{:name "org1"
@@ -50,7 +48,7 @@ query results
            :state :suspended
 		   :users [#:user{:email "bad@example.com"}
 		           #:user{:email "worst@example.com"}]}]
-				   
+
 (mutate! env
          :account/new-organization
 		 #:account{:name "org3"

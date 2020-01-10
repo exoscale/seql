@@ -35,12 +35,12 @@
 
 (deftest second-schema-test
   (let [schema (make-schema
-                 (entity :account
-                         (field :id (ident))
-                         (field :name (ident))
-                         (field :state (transform :keyword))
-                         (condition :active :state :active)
-                         (condition :state)))
+                (entity :account
+                        (field :id (ident))
+                        (field :name (ident))
+                        (field :state (transform :keyword))
+                        (condition :active :state :active)
+                        (condition :state)))
         env     {:schema schema :jdbc jdbc-config}]
 
     (testing "ID lookups work"
@@ -55,7 +55,6 @@
     (testing "Field conditions work"
       (is (= [#:account{:name "a2"}]
              (query env :account [:account/name] [[:account/state :suspended]]))))))
-
 
 (deftest third-schema-test
   (let [schema (make-schema
@@ -112,7 +111,6 @@
               #:invoice{:total 2, :paid? true}
               #:invoice{:total 4, :paid? true}]
              (query env :invoice [:invoice/total :invoice/paid?]))))))
-
 
 (deftest fifth-schema-test
   (let [schema (make-schema
@@ -180,7 +178,6 @@
       (is (= {:invoice/paid? true}
              (query env [:invoice/id 1] [:invoice/paid?]))))
 
-
     (testing "can list users in accounts"
       (is (= {:account/name  "a0"
               :account/users [{:user/name "u0a0"}
@@ -203,7 +200,6 @@
                                          :invoice/total
                                          {:invoice/lines [:line/quantity
                                                           :line/product]}]}]))))))
-
 
 (deftest sixth-schema-test
   (let [schema (make-schema
@@ -249,32 +245,32 @@
                         (field :quantity)))
         env {:schema schema :jdbc jdbc-config}]
 
-  (testing "joined entities containing only nil values are filtered out
+    (testing "joined entities containing only nil values are filtered out
             (happens when there is no remote entities)"
-    (mutate! env :account/create {:account/name  "a3"
-                                  :account/state :active})
+      (mutate! env :account/create {:account/name  "a3"
+                                    :account/state :active})
 
-    (is (= {:account/state :active}
-           (query env [:account/name "a3"] [:account/state])))
+      (is (= {:account/state :active}
+             (query env [:account/name "a3"] [:account/state])))
 
-    (is (= {:account/name     "a3"
-            :account/invoices []}
-           (query env
-                  [:account/name "a3"]
-                  [:account/name {:account/invoices [:invoice/id
-                                                     :invoice/state]}])))
+      (is (= {:account/name     "a3"
+              :account/invoices []}
+             (query env
+                    [:account/name "a3"]
+                    [:account/name {:account/invoices [:invoice/id
+                                                       :invoice/state]}])))
 
-    (let [last-result  (atom nil)
-          store-result (fn [details]
-                         (reset! last-result
-                                 (select-keys details [:mutation :result])))
-          env          (add-listener! env
-                                      :account/create
-                                      ::handler
-                                      store-result)]
+      (let [last-result  (atom nil)
+            store-result (fn [details]
+                           (reset! last-result
+                                   (select-keys details [:mutation :result])))
+            env          (add-listener! env
+                                        :account/create
+                                        ::handler
+                                        store-result)]
 
-      (mutate! env :account/create {:account/name "a4" :account/state :active})
+        (mutate! env :account/create {:account/name "a4" :account/state :active})
 
-      (is (= {:mutation :account/create
-              :result   [1]}
-             @last-result))))))
+        (is (= {:mutation :account/create
+                :result   [{:next.jdbc/update-count 1}]}
+               @last-result))))))
