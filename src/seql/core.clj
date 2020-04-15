@@ -74,6 +74,24 @@
            (transform-for-join local-id)
            (transform-for-join (or remote-name remote-id))]))
 
+(defmethod process-join :many-to-many
+  [q {:keys [entity table]} {:keys [local-id
+                                    intermediate
+                                    intermediate-left
+                                    intermediate-right
+                                    remote-id]}]
+  (-> q
+      (update :left-join conj
+              intermediate
+              [:=
+               (transform-for-join local-id)
+               (transform-for-join intermediate-left)])
+      (update :left-join conj
+              [table entity]
+              [:=
+               (transform-for-join intermediate-right)
+               (transform-for-join remote-id)])))
+
 (defn process-field
   "Add necessary stanzas to realize field targeting with SQL"
   [schema {:keys [relations compounds fields entity]}]
@@ -83,10 +101,10 @@
     (fn [q field]
       (cond
         (and (map? field) (contains? rel-set (-> (keys field) first)))
-        (let [rel-key    (first (keys field))
-              subfields  (first (vals field))
-              rel-schema (get relations rel-key)
-              subentity  (:remote-entity rel-schema)]
+        (let [rel-key      (first (keys field))
+              subfields    (first (vals field))
+              rel-schema   (get relations rel-key)
+              subentity    (:remote-entity rel-schema)]
           (reduce (process-field schema (get schema subentity))
                   (process-join q
                                 (assoc (get schema subentity)
