@@ -23,6 +23,8 @@
          "DROP TABLE IF EXISTS invoice"
          "DROP TABLE IF EXISTS invoiceline"
          "DROP TABLE IF EXISTS product"
+         "DROP TABLE IF EXISTS user_role" ;; a different name on purpose
+         "DROP TABLE IF EXISTS role_users"
          (create-table-ddl
           :account
           [[:id "int not null auto_increment"]
@@ -49,7 +51,16 @@
           [[:id "int not null auto_increment"]
            [:invoice_id "int not null"]
            [:product_id "int not null"]
-           [:quantity "int"]])]))
+           [:quantity "int"]])
+         (create-table-ddl
+          :user_role
+          [[:id "int not null auto_increment"]
+           [:account_id "int not null"]
+           [:name "varchar(32) not null"]])
+         (create-table-ddl
+          :role_users
+          [[:role_id "int not null"]
+           [:user_id "int not null"]])]))
 
 (defn load-fixtures
   [dataset]

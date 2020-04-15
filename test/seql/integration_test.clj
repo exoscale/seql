@@ -3,6 +3,7 @@
                                         add-listener! remove-listener!]]
             [seql.helpers       :refer [make-schema ident field compound
                                         mutation transform has-many has-one condition
+                                        has-many-through
                                         entity]]
             [db.fixtures        :refer [jdbc-config with-db-fixtures]]
             [clojure.test       :refer [use-fixtures testing deftest is]]
@@ -59,7 +60,14 @@
    (entity [:line :invoiceline]
            (field :id          (ident))
            (has-one :product [:product-id :product/id])
-           (field :quantity))))
+           (field :quantity))
+   (entity [:role :user-role]
+           (field :id (ident))
+           (field :name)
+           (has-many-through :users [:id
+                                     :role-users/role-id
+                                     :role-users/user-id
+                                     :user/id]))))
 
 (def env {:schema schema :jdbc jdbc-config})
 
@@ -121,6 +129,15 @@
       (is (= {:account/name  "a3"
               :account/state :active}
              (query @store [:account/id 3] [:account/name :account/state]))))
+
+    (testing "can retrieve roles for account 1"
+      (is (= {:role/name "a0r0"}
+             (query @store [:role/id 0] [:role/name]))))
+
+    (testing "can retrieve user for roles for account 1"
+      (is (= {:role/name "a0r0" :role/users [#:user{:name "u0a0"}
+                                             #:user{:name "u1a0"}]}
+             (query @store [:role/id 0] [:role/name {:role/users [:user/name]}]))))
 
     (testing "two accounts are active"
       (is (= [{:account/name "a0"} {:account/name "a1"} {:account/name "a3"}]

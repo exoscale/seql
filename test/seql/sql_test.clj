@@ -42,4 +42,34 @@
                    "LEFT JOIN c c ON b.id = c.b_id   ")]
              (sql/format
               (sql-query env :a [:a/id {:a/b [:b/id {:b/c [:c/id]}]}] [])))))))
-(def env *1)
+
+(deftest many-to-many-test
+
+  (let [env {:schema
+             {:a {:table     :a
+                  :ident     :a/id
+                  :fields    [:a/id]
+                  :relations {:a/b {:type               :many-to-many
+                                    :local-id           :a/id
+                                    :intermediate       :i
+                                    :intermediate-left  :i/a-id
+                                    :intermediate-right :i/b-id
+                                    :remote-id          :b/id
+                                    :remote-entity      :b}}}
+              :b {:table  :b
+                  :ident  :b/id
+                  :fields [:b/id]}
+              :i {:table  :i
+                  :ident  :i/id
+                  :fields [:i/id :i/a-id :i/b-id]}}}]
+
+    (testing "basic single-layer query"
+      (is (= ["SELECT a.id AS a__id FROM a a    "]
+             (sql/format
+              (sql-query env :a [:a/id] [])))))
+
+    (testing "many-to-many query"
+      (is (= ["SELECT a.id AS a__id, b.id AS b__id FROM a a LEFT JOIN i ON a.id = i.a_id LEFT JOIN b b ON i.b_id = b.id   "]
+             (sql/format
+              (sql-query env :a [:a/id {:a/b [:b/id]}]
+                         [])))))))

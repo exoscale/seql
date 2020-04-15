@@ -91,6 +91,19 @@
     :remote-id     remote
     :local-id      local}])
 
+(defn has-many-through
+  ""
+  [field [local left right remote]]
+  [{:type               :many-to-many
+    :context            ::entity
+    :field              field
+    :intermediate       (keyword (namespace left))
+    :intermediate-left  left
+    :intermediate-right right
+    :remote-entity      (keyword (namespace remote))
+    :remote-id          remote
+    :local-id           local}])
+
 (defn condition
   "Build a condition which can be used to filter results
    at the database layer.
@@ -182,8 +195,16 @@
               (update :local-id (partial qualify entity))
               (dissoc :field :context))))
 
-
 (defmethod merge-entity-component :one-to-one
+  [{:keys [entity] :as schema} {:keys [field] :as rel}]
+  (update schema :relations
+          assoc
+          (qualify entity field)
+          (-> rel
+              (update :local-id (partial qualify entity))
+              (dissoc :field :context))))
+
+(defmethod merge-entity-component :many-to-many
   [{:keys [entity] :as schema} {:keys [field] :as rel}]
   (update schema :relations
           assoc
