@@ -7,6 +7,7 @@
             [honeysql.core          :as sql]
             [honeysql.helpers       :as h]
             [camel-snake-kebab.core :as csk]
+            [spec-coerce.core       :as sc]
             [seql.spec]))
 
 ;; SQL Query Builder
@@ -358,8 +359,8 @@
   ([env mutation params metadata]
    (s/assert ::mutate-args [env mutation params])
    (let [{:keys [spec handler pre]} (find-mutation env mutation)
-         listeners                  (find-listeners env mutation)]
-
+         listeners                  (find-listeners env mutation)
+         params                     (sc/coerce spec params)]
      (when-not (s/valid? spec params)
        (throw (ex-info (format "mutation params do not conform to %s: %s"
                                spec
