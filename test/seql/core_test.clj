@@ -1,7 +1,7 @@
 (ns seql.core-test
   (:require [seql.core    :as c]
             [seql.helpers :refer [make-schema ident field compound
-                                  mutation transform has-many has-one condition
+                                  transform has-many has-one condition
                                   entity]]
             [clojure.test :refer [use-fixtures testing deftest is]]
             [db.fixtures  :refer [with-db-fixtures]]))
