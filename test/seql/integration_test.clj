@@ -107,6 +107,7 @@
 
   (testing "can update account 3 with spec-coerce coercion"
     (mutate! env :account/update {:account/id    3
+                                  :account/name  "new name"
                                   :account/state "active"}))
 
   (testing "throw if an non-existing account is updated"
