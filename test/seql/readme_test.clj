@@ -2,7 +2,7 @@
   "Reproduces examples provided in the README"
   (:require [seql.core     :refer [query mutate! add-listener!]]
             [seql.helpers  :refer [make-schema ident field compound mutation
-                                   transform has-many has-one condition entity]]
+                                   has-many has-one condition entity transform]]
             [db.fixtures   :refer [jdbc-config with-db-fixtures]]
             [clojure.test  :refer [use-fixtures testing deftest is]]
             [clojure.spec.test.alpha :as st]
@@ -15,22 +15,24 @@
 (s/def :account/state keyword?)
 (s/def ::account (s/keys :req [:account/name :account/state]))
 
+(s/def :invoice/state keyword?)
+
 (deftest first-schema-test
   (let [schema (make-schema
                 (entity :account
                         (field :id (ident))
-                        (field :name)
-                        (field :state)))
+                        (field :state)
+                        (field :name)))
         env    {:schema schema :jdbc jdbc-config}]
 
     (testing "there are three accounts"
-      (is (= [#:account{:name "a0" :state "active"}
-              #:account{:name "a1" :state "active"}
-              #:account{:name "a2" :state "suspended"}]
+      (is (= [#:account{:name "a0" :state :active}
+              #:account{:name "a1" :state :active}
+              #:account{:name "a2" :state :suspended}]
              (query env :account [:account/name :account/state]))))
 
     (testing "ID lookups work"
-      (is (= #:account{:name "a0" :state "active"}
+      (is (= #:account{:name "a0" :state :active}
              (query env [:account/id 0] [:account/name :account/state]))))))
 
 (deftest second-schema-test
@@ -38,7 +40,7 @@
                 (entity :account
                         (field :id (ident))
                         (field :name (ident))
-                        (field :state (transform :keyword))
+                        (field :state)
                         (condition :active :state :active)
                         (condition :state)))
         env     {:schema schema :jdbc jdbc-config}]
@@ -61,7 +63,7 @@
                 (entity :account
                         (field :id (ident))
                         (field :name (ident))
-                        (field :state (transform :keyword))
+                        (field :state)
                         (has-many :users [:id :user/account-id])
                         (condition :active :state :active)
                         (condition :state))
@@ -99,7 +101,7 @@
   (let [schema (make-schema
                 (entity :invoice
                         (field :id (ident))
-                        (field :state (transform :keyword))
+                        (field :state)
                         (field :total)
                         (compound :paid? [state] (= state :paid))
                         (condition :paid :state :paid)
@@ -117,7 +119,7 @@
                 (entity :account
                         (field :id          (ident))
                         (field :name        (ident))
-                        (field :state       (transform :keyword))
+                        (field :state)
                         (has-many :users    [:id :user/account-id])
                         (has-many :invoices [:id :invoice/account-id])
 
@@ -131,7 +133,7 @@
 
                 (entity :invoice
                         (field :id          (ident))
-                        (field :state       (transform :keyword))
+                        (field :state)
                         (field :total)
                         (compound :paid?    [state] (= state :paid))
                         (has-many :lines    [:id :line/invoice-id])
@@ -160,7 +162,7 @@
     (testing "one account is suspended (adding conditions)"
       (is (= [{:account/name "a2"}]
              (query env :account [:account/name]
-                    [[:account/state "suspended"]]))))
+                    [[:account/state :suspended]]))))
 
     (testing "can retrieve account by id"
       (is (= {:account/name "a0"}
@@ -211,6 +213,7 @@
                         (field :id          (ident))
                         (field :name        (ident))
                         (field :state       (transform :keyword))
+
                         (has-many :users    [:id :user/account-id])
                         (has-many :invoices [:id :invoice/account-id])
 
@@ -236,7 +239,7 @@
                         (field :email))
                 (entity :invoice
                         (field :id          (ident))
-                        (field :state       (transform :keyword))
+                        (field :state)
                         (field :total)
                         (compound :paid?    [state] (= state :paid))
                         (has-many :lines    [:id :line/invoice-id])

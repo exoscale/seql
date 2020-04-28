@@ -7,7 +7,8 @@
             [honeysql.core          :as sql]
             [honeysql.helpers       :as h]
             [camel-snake-kebab.core :as csk]
-            [spec-coerce.core       :as sc]
+            [exoscale.coax          :as sc]
+            [seql.coerce            :as c]
             [seql.spec]))
 
 ;; SQL Query Builder
@@ -158,13 +159,13 @@
   (let [entity (-> condition namespace keyword)
         table  (get-in schema [entity :table])
         params (get-in schema [entity :conditions condition])
-        type   (:type params)]
+        type   (:type params)
+        field  (:field params)]
     (cond
       (= type :static)
       (h/merge-where q [:= (table-field table (:field params))
-                        (prepare-field schema
-                                       (:field params)
-                                       (:value params))])
+                        (->> (c/write field (:value params))
+                             (prepare-field schema field))]) ; backward compat transforms
 
       (= type :field)
       (if-not (= 1 (count args))
@@ -173,10 +174,10 @@
                          :code      400
                          :condition condition
                          :args      args}))
-        (h/merge-where q [:= (table-field table (:field params))
-                          (prepare-field schema
-                                         (:field params)
-                                         (first args))]))
+        (h/merge-where q [:= (table-field table field)
+                          (->> (c/write field
+                                        (first args))
+                               (prepare-field schema field))]))
 
       :else
       (if-not (= (:arity params) (count args))
@@ -185,7 +186,8 @@
                          :code      400
                          :condition condition
                          :args      args}))
-        (h/merge-where q (apply (:handler params) args))))))
+        (h/merge-where q (apply (:handler params)
+                                args))))))
 
 (defn sql-query
   "Build a SQL query for the pull-syntax expressed. This is an incremental
@@ -244,6 +246,20 @@
                                (some? transform))
                           transform)])))
             m))))
+
+(defn process-read-transforms
+  [m]
+  (into {}
+        (map (fn [[k v]]
+               [k (c/read k v)]))
+        m))
+
+(defn process-write-transforms
+  [m]
+  (into {}
+        (map (fn [[k v]]
+               [k (c/write k v)]))
+        m))
 
 (defn compound-extra-fields
   "Figure out which fields aren't needed once compounds have been
@@ -320,10 +336,12 @@
    (let [[q qmeta] (sql-query env entity fields conditions)
          schema    (:schema env)]
      (->> (jdbc/plan (:jdbc env) (sql/format q))
-          (into [] (comp
-                    (map qualify-result)
-                    (map (process-transforms-fn schema :deserialize))
-                    (map (process-compounds-fn schema qmeta))))
+          (into []
+                (comp
+                 (map qualify-result)
+                 (map process-read-transforms)
+                 (map (process-transforms-fn schema :deserialize)) ; backward compat
+                 (map (process-compounds-fn schema qmeta))))
           (recompose-relations schema fields)
           (extract-ident entity)))))
 
@@ -370,7 +388,8 @@
                         :explain (s/explain-str spec params)})))
      (let [transform (process-transforms-fn (:schema env)
                                             :serialize)
-           transformed-params (transform params)
+           transformed-params (-> (process-write-transforms params)
+                                  transform) ; backward compat transforms
            statement (-> transformed-params
                          (handler)
                          (sql/format))

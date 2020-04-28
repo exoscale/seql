@@ -77,6 +77,7 @@
 (defn with-db-fixtures
   [dataset]
   (fn [f]
+    (cleanup)
     (load-fixtures dataset)
     (f)
     (cleanup)))

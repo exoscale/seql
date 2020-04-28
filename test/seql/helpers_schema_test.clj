@@ -7,7 +7,7 @@
    (entity :account
            (field :id          (ident))
            (field :name        (ident))
-           (field :state       (transform :keyword))
+           (field :state)
            (has-many :users    [:id :user/account-id])
            (has-many :invoices [:id :invoice/account-id])
 
@@ -21,7 +21,7 @@
 
    (entity :invoice
            (field :id          (ident))
-           (field :state       (transform :keyword))
+           (field :state)
            (field :total)
            (compound :paid?    [state] (= state :paid))
            (has-many :lines    [:id :line/invoice-id])
@@ -38,7 +38,6 @@
   {:account {:table      :account
              :idents     [:account/id :account/name]
              :fields     [:account/id :account/name :account/state]
-             :transforms {:account/state [keyword name]}
              :conditions {:account/active {:type  :static
                                            :field :account/state
                                            :value :active}
@@ -55,7 +54,6 @@
    :invoice {:table      :invoice
              :idents     [:invoice/id]
              :fields     [:invoice/id :invoice/state :invoice/total]
-             :transforms {:invoice/state [keyword name]}
              :conditions {:invoice/unpaid {:type  :static
                                            :field :invoice/state
                                            :value :unpaid}
@@ -105,18 +103,8 @@
 
     (is (thrown-with-msg?
          clojure.lang.ExceptionInfo
-         #"The transform form should be used inside field definitions"
-         (make-schema (transform :keyword))))
-
-    (is (thrown-with-msg?
-         clojure.lang.ExceptionInfo
          #"The ident form should be used inside field definitions"
          (entity :example (ident))))
-
-    (is (thrown-with-msg?
-         clojure.lang.ExceptionInfo
-         #"The transform form should be used inside field definitions"
-         (entity :example (transform :keyword))))
 
     (is (thrown-with-msg?
          clojure.lang.ExceptionInfo
@@ -138,6 +126,16 @@
          #"The compound form should be used inside entity definitions"
          (make-schema
           (compound :paid? [state] (= state :paid)))))
+
+    (is (thrown-with-msg?
+         clojure.lang.ExceptionInfo
+         #"The transform form should be used inside field definitions"
+         (make-schema (transform :keyword))))
+
+    (is (thrown-with-msg?
+         clojure.lang.ExceptionInfo
+         #"The transform form should be used inside field definitions"
+         (entity :example (transform :keyword))))
 
     (is (thrown-with-msg?
          clojure.lang.ExceptionInfo
