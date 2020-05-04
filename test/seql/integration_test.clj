@@ -2,7 +2,7 @@
   (:require [seql.core          :refer [query mutate!
                                         add-listener! remove-listener!]]
             [seql.helpers       :refer [make-schema ident field compound
-                                        mutation transform has-many has-one condition
+                                        mutation has-many has-one condition
                                         has-many-through
                                         entity]]
             [db.fixtures        :refer [jdbc-config with-db-fixtures]]
@@ -22,7 +22,7 @@
    (entity :account
            (field :id          (ident))
            (field :name        (ident))
-           (field :state       (transform :keyword))
+           (field :state)
            (has-many :users    [:id :user/account-id])
            (has-many :invoices [:id :invoice/account-id])
 
@@ -47,7 +47,7 @@
            (field :email))
    (entity :invoice
            (field :id          (ident))
-           (field :state       (transform :keyword))
+           (field :state)
            (field :total)
            (compound :paid?    [state] (= state :paid))
            (has-many :lines    [:id :line/invoice-id])

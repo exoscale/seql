@@ -1,12 +1,15 @@
 (ns seql.core-test
   (:require [seql.core    :as c]
             [seql.helpers :refer [make-schema ident field compound
-                                  transform has-many has-one condition
-                                  entity]]
+                                  has-many has-one condition
+                                  entity transform]]
             [clojure.test :refer [use-fixtures testing deftest is]]
-            [db.fixtures  :refer [with-db-fixtures]]))
+            [db.fixtures  :refer [with-db-fixtures]]
+            [clojure.spec.alpha :as s]))
 
 (use-fixtures :each (with-db-fixtures :small))
+
+(s/def :account/state keyword?)
 
 (def schema
   "Setup a realistic schema"
@@ -14,7 +17,7 @@
    (entity :account
            (field :id          (ident))
            (field :name        (ident))
-           (field :state       (transform :keyword))
+           (field :state)
            (has-many :users    [:id :user/account-id])
            (has-many :invoices [:id :invoice/account-id])
 
@@ -26,7 +29,8 @@
            (field :email))
    (entity :invoice
            (field :id          (ident))
-           (field :state       (transform :keyword))
+           (field :state)
+           (field :state-bc    (transform :keyword))
            (field :total)
            (compound :paid?    [state] (= state :paid))
            (has-many :lines    [:id :line/invoice-id])
@@ -148,7 +152,7 @@
 
 (deftest prepare-field-test
   (testing "field has tranform defined"
-    (is (= (c/prepare-field schema :invoice/state :foo)
+    (is (= (c/prepare-field schema :invoice/state-bc :foo)
            "foo")))
   (testing "field has no transform -> identity"
     (is (= "bar" (c/prepare-field schema :invoice/id "bar")))

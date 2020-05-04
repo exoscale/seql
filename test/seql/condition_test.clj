@@ -7,7 +7,10 @@
   the appropriate where vector for honeysql.
   "
   (:require [seql.core     :refer :all]
-            [clojure.test  :refer :all]))
+            [clojure.test  :refer :all]
+            [clojure.spec.alpha :as s]))
+
+(s/def :a/state #{:active :suspended})
 
 (deftest condition-test
   (let [empty-query {}

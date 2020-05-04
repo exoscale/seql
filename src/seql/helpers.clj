@@ -32,7 +32,7 @@
   {:keyword [keyword name]
    :edn     [edn/read-string pr-str]})
 
-(defn transform
+(defn ^:deprecated transform
   "Provide transformation for the field. Transformations
    can either be a keyword, pointing to a known transformation
    (see `transforms` for details), or a tuple of
