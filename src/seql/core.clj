@@ -318,11 +318,40 @@
                   groups       (->> (sort-by partitioner records)
                                     (partition-by partitioner))]
               (if (empty? relations)
-                (remove #(every? nil? (vals %))
-                        (map #(extract (first %)) groups))
+                (remove #{{}} (map #(extract (first %)) groups))
                 (for [g groups]
-                  (reduce (add-relation-fn g) (extract (first g)) relations)))))]
+                  (reduce (add-relation-fn g)
+                          (extract (first g))
+                          relations)))))]
     (walk-tree fields records)))
+
+(defn relation-fields
+  "Builds a map of <entity> -> #{<relation fields> ...}"
+  [entity-ns row]
+  (reduce (fn [rows-by-rel [field _ :as m]]
+            (let [field-ns (namespace field)]
+              (cond-> rows-by-rel
+                (not= entity-ns field-ns)
+                (update field-ns conj m))))
+          {}
+          row))
+
+(defn remove-empty-relations
+  "remove cols that are all nils for an entity relation"
+  [entity]
+  (let [entity-ns (cond-> entity
+                    (coll? entity)
+                    first
+                    :then namespace)]
+    (keep (fn [row]
+              (let [rels-by-entity (relation-fields entity-ns row)
+                    removable-cols (into #{}
+                                         (comp (keep (fn [[_ cols]]
+                                                       (when (every? nil? (vals cols))
+                                                         (map first cols))))
+                                               cat)
+                                         rels-by-entity)                    ]
+                (apply dissoc row removable-cols))))))
 
 (defn query
   "Look up entities."
@@ -339,6 +368,7 @@
           (into []
                 (comp
                  (map qualify-result)
+                 (remove-empty-relations entity)
                  (map process-read-transforms)
                  (map (process-transforms-fn schema :deserialize)) ; backward compat
                  (map (process-compounds-fn schema qmeta))))
