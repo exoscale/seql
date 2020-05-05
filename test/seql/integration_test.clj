@@ -16,6 +16,8 @@
 (s/def :account/state keyword?)
 (s/def ::account (s/keys :req [:account/name :account/state]))
 
+(s/def :invoice/name string?)
+
 (def schema
   "As gradually explained in the project's README"
   (make-schema
@@ -48,6 +50,7 @@
    (entity :invoice
            (field :id          (ident))
            (field :state)
+           (field :name)
            (field :total)
            (compound :paid?    [state] (= state :paid))
            (has-many :lines    [:id :line/invoice-id])
@@ -82,6 +85,7 @@
            (query env
                   [:account/name "a3"]
                   [:account/name {:account/invoices [:invoice/id
+                                                     :invoice/name
                                                      :invoice/state]}])))))
 
 (deftest insert-account-test

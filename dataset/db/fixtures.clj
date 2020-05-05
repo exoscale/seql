@@ -41,6 +41,7 @@
           [[:id "int not null auto_increment"]
            [:account_id "int not null"]
            [:state "varchar(32) not null"]
+           [:name "varchar(32)"]
            [:total "int"]])
          (create-table-ddl
           :product

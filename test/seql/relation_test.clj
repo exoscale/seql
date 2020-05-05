@@ -109,27 +109,4 @@
                           {:b/id 5 :b/c [{:c/id 15} {:c/id 16} {:c/id 17}]}]}]]
 
       (is (= result (recompose-relations {}  fields records)))
-      (is (= result (recompose-relations {}  fields (shuffle records))))))
-
-  (testing "weeding out empty nested entities"
-
-    ;; When doing left joins we have cases where no sub entity exists
-    ;; in this case, ensure that they get weeded out of the output list
-
-    (let [records [{:a 1 :b 4 :c nil}
-                   {:a 1 :b 5 :c nil}
-                   {:a 1 :b 6 :c nil}
-                   {:a 2 :b nil :c nil}]
-          fields [:a {:b [:b]} {:c [:c]}]
-          result [{:a 1 :b [{:b 4} {:b 5} {:b 6}] :c []}
-                  {:a 2 :b []                     :c []}]]
-
-      (is (= result (recompose-relations {} fields (shuffle records)))))
-
-    (let [records [{:a 4 :b nil :c 1}
-                   {:a 3 :b 7 :c 2}
-                   {:a 3 :b 8 :c 2}]
-          fields [:a {:b [:b]} {:c [:c]}]
-          result [{:a 3 :b [{:b 7} {:b 8}] :c [{:c 2}]}
-                  {:a 4 :b []              :c [{:c 1}]}]]
       (is (= result (recompose-relations {}  fields (shuffle records)))))))
