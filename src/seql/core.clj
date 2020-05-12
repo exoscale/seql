@@ -429,19 +429,20 @@
                       (run! (fn [{:keys [name query valid?]
                                   :or {valid? seq}
                                   :as pre}]
-                              (let [result (jdbc/execute! jdbc
-                                                          (-> transformed-params
-                                                              (query)
-                                                              (sql/format)))]
-                                (when-not (valid? result)
-                                  (throw (ex-info (format "Precondition %s on mutation %s failed"
-                                                          name
-                                                          mutation)
-                                                  {:type :error/mutation-failed
-                                                   :code 409
-                                                   :mutation mutation
-                                                   :params params
-                                                   :pre (dissoc pre :valid? :query)})))))
+                              (when-let [q (query)]
+                                (let [result (jdbc/execute! jdbc
+                                                            (-> transformed-params
+                                                                q
+                                                                (sql/format)))]
+                                  (when-not (valid? result)
+                                    (throw (ex-info (format "Precondition %s on mutation %s failed"
+                                                            name
+                                                            mutation)
+                                                    {:type :error/mutation-failed
+                                                     :code 409
+                                                     :mutation mutation
+                                                     :params params
+                                                     :pre (dissoc pre :valid? :query)}))))))
                             pre))
                     (jdbc/execute! jdbc statement))]
        (when-not (success-result? result)
