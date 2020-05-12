@@ -3,7 +3,7 @@
               [k version :exclusions exclusions])
       paths (:paths cfg)]
 
-  (defproject exoscale/seql "0.1.17-SNAPSHOT"
+  (defproject exoscale/seql "0.1.17"
     :description "Simplfied EDN Query Language for SQL"
     :url "https://github.com/exoscale/seql"
     :license {:name "MIT/ISC License"}
