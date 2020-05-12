@@ -429,11 +429,8 @@
                       (run! (fn [{:keys [name query valid?]
                                   :or {valid? seq}
                                   :as pre}]
-                              (when-let [q (query)]
-                                (let [result (jdbc/execute! jdbc
-                                                            (-> transformed-params
-                                                                q
-                                                                (sql/format)))]
+                              (when-let [q (query transformed-params)]
+                                (let [result (jdbc/execute! jdbc (sql/format q))]
                                   (when-not (valid? result)
                                     (throw (ex-info (format "Precondition %s on mutation %s failed"
                                                             name
