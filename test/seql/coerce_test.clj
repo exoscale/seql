@@ -16,6 +16,7 @@
   (is (= (c/write nil 1) 1))
   (is (= (c/write ::k :foo) "foo"))
   (is (= (c/write ::k :foo) "foo"))
+  (is (= (c/write `keyword? :foo) "foo"))
   (is (= (c/write ::m {:a 1}) {:a 1}))
 
   (-> (s/def ::mw map?)
@@ -30,5 +31,4 @@
   (is (= (c/read ::m {:a 1}) {:a 1}))
   (-> (s/def ::mw map?)
       (c/with-reader! c/edn-reader))
-
   (is (= (c/read ::mw "{:a 1}") {:a 1})))
