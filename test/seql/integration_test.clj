@@ -194,7 +194,6 @@
 
       (is (= 1 @calls)))))
 
-
 (deftest mutation-with-precondition
   (let [schema {:user
                 {:entity :user
