@@ -344,14 +344,14 @@
                     first
                     :then namespace)]
     (keep (fn [row]
-              (let [rels-by-entity (relation-fields entity-ns row)
-                    removable-cols (into #{}
-                                         (comp (keep (fn [[_ cols]]
-                                                       (when (every? nil? (vals cols))
-                                                         (map first cols))))
-                                               cat)
-                                         rels-by-entity)                    ]
-                (apply dissoc row removable-cols))))))
+            (let [rels-by-entity (relation-fields entity-ns row)
+                  removable-cols (into #{}
+                                       (comp (keep (fn [[_ cols]]
+                                                     (when (every? nil? (vals cols))
+                                                       (map first cols))))
+                                             cat)
+                                       rels-by-entity)]
+              (apply dissoc row removable-cols))))))
 
 (defn query
   "Look up entities."
@@ -397,7 +397,6 @@
 (defn success-result?
   [result]
   (some-> result first :next.jdbc/update-count pos?))
-
 
 (defn mutate!
   "Perform a mutation. Since mutations are spec'd, parameters are

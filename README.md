@@ -1,12 +1,13 @@
 seql: Simplified EDN Query Language
 ===================================
 
-[![Build Status](https://secure.travis-ci.org/exoscale/seql.png)](http://travis-ci.org/exoscale/seql)
+
 
 **seql** intends to provide a simplified
 [EQL](https://edn-query-language.org/) inspired query language to
 access entities stored in traditional SQL databases.
-
+![](https://github.com/exoscale/seql/workflows/Clojure/badge.svg)
+[![cljdoc badge](https://cljdoc.org/badge/exoscale/seql)](https://cljdoc.org/d/exoscale/seql/CURRENT)
 [![Clojars Project](https://img.shields.io/clojars/v/exoscale/seql.svg)](https://clojars.org/exoscale/seql)
 
 ## Introduction

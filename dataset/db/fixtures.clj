@@ -13,7 +13,7 @@
           (name table-id)
           (str/join ", "
                     (map (fn [[id def]] (format "%s %s" (name id) def))
-                            cols))))
+                         cols))))
 
 (defn cleanup
   []
@@ -67,11 +67,11 @@
   [dataset]
   (cleanup)
   (doseq [[k [h & r]] (-> (format "db/%s.edn" (name dataset))
-                    (io/resource)
-                    (slurp)
-                    (edn/read-string))]
+                          (io/resource)
+                          (slurp)
+                          (edn/read-string))]
     (sql/insert-multi! jdbc-config
-                         k
+                       k
                        h
                        r)))
 

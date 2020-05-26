@@ -18,12 +18,13 @@
                         "--plugin" "kaocha.plugin/junit-xml" "--junit-xml-file"
                         "target/junit/results.xml"]}
     :deploy-repositories [["snapshots" :clojars] ["releases" :clojars]]
-    :profiles {:dev {:dependencies   [[lambdaisland/kaocha           "0.0-554"]
-                                      [lambdaisland/kaocha-junit-xml "0.0-70"]
-                                      [com.h2database/h2             "1.4.199"]]
-                     :plugins        [[lein-codox "0.10.7"]]
-                     :pedantic?      :warn
-                     :source-paths   ["dataset"]
-                     :resource-paths ["dataset"]}}
+    :profiles {:dev     {:dependencies   [[lambdaisland/kaocha           "0.0-554"]
+                                          [lambdaisland/kaocha-junit-xml "0.0-70"]
+                                          [com.h2database/h2             "1.4.199"]]
+                         :plugins        [[lein-cljfmt "0.6.7"]]
+                         :pedantic?      :warn
+                         :source-paths   ["dataset"]
+                         :resource-paths ["dataset"]}
+               :uberjar {:pedantic? :abort}}
     :dependencies ~deps
     :source-paths ~paths))
