@@ -33,11 +33,9 @@ well as normalizing data to provide for more idiomatic Clojure data in
 query results
 
 ```clojure
-(query env
-       :account
-       [:account/name
-	    :account/state
-		{:account/users [:user/email]}])
+(query env :account [:account/name
+                     :account/state
+                     {:account/users [:user/email]}])
 
 ;; =>
 
