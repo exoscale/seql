@@ -2,5 +2,5 @@
          seancorfield/next.jdbc {:mvn/version "1.0.9"}
          honeysql               {:mvn/version "0.9.8"}
          camel-snake-kebab      {:mvn/version "0.4.0"}
-         exoscale/coax          {:mvn/version "1.0.0-alpha5"}}
+         exoscale/coax          {:mvn/version "1.0.0-alpha6"}}
  :paths ["src"]}
