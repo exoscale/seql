@@ -234,7 +234,7 @@
           (qualify entity field)
           {:type    :inline
            :arity   arity
-           :hanlder handler}))
+           :handler handler}))
 
 (defmethod merge-entity-component :mutation
   [{:keys [entity] :as schema} {:keys [field spec handler]}]
