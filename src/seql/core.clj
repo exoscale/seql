@@ -6,10 +6,10 @@
             [clojure.spec.alpha     :as s]
             [honeysql.core          :as sql]
             [honeysql.helpers       :as h]
-            [camel-snake-kebab.core :as csk]
             [exoscale.coax          :as sc]
             [seql.coerce            :as c]
-            [seql.spec]))
+            [seql.spec]
+            [seql.string :as seql-str]))
 
 ;; SQL Query Builder
 ;; =================
@@ -31,7 +31,7 @@
   Returns a tuple of database name to aliased name."
   [k]
   (let [entity   (namespace k)
-        sql-name (csk/->snake_case (name k))]
+        sql-name (seql-str/->snake (name k))]
     [(keyword (str entity "." sql-name))
      (keyword (str entity "__" (name k)))]))
 
@@ -40,7 +40,7 @@
   format"
   [k]
   (let [entity (namespace k)
-        sql-name (csk/->snake_case (name k))]
+        sql-name (seql-str/->kebab (name k))]
     (keyword (str entity "." sql-name))))
 
 (defn table-field
@@ -217,8 +217,8 @@
    yield back a qualified keyword"
   [k]
   (let [[ns tail] (str/split (name k) #"__" 2)]
-    (keyword (csk/->kebab-case ns)
-             (csk/->kebab-case tail))))
+    (keyword (seql-str/->kebab ns)
+             (seql-str/->kebab tail))))
 
 (defn qualify-result
   "Qualify a result with the appropriate namespace"

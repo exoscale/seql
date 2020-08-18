@@ -14,7 +14,9 @@
 
 (s/def :account/name string?)
 (s/def :account/state keyword?)
-(s/def ::account (s/keys :req [:account/name :account/state]))
+(s/def :account/foo2bar string?)
+(s/def ::account (s/keys :req [:account/name :account/state]
+                         :opt [:account/foo2bar]))
 
 (s/def :invoice/name string?)
 
@@ -24,6 +26,7 @@
    (entity :account
            (field :id          (ident))
            (field :name        (ident))
+           (field :foo2bar)
            (field :state)
            (has-many :users    [:id :user/account-id])
            (has-many :invoices [:id :invoice/account-id])
@@ -78,6 +81,7 @@
   (testing "joined entities containing only nil values are filtered out
             (happens when there is no remote entities)"
     (mutate! env :account/create {:account/name  "a3"
+                                  :account/foo2bar "baz"
                                   :account/state :active})
 
     (is (= {:account/name     "a3"
@@ -95,14 +99,16 @@
 
   (testing "inserting additional account"
     (mutate! env :account/create {:account/name  "a3"
+                                  :account/foo2bar "baz"
                                   :account/state :active}))
 
   (testing "can retrieve account 3"
     (is (= {:account/name  "a3"
+            :account/foo2bar "baz"
             :account/state :active}
            (query env
                   [:account/id 3]
-                  [:account/name :account/state]))))
+                  [:account/name :account/foo2bar :account/state]))))
 
   (testing "can update account 3"
     (mutate! env :account/update {:account/id    3
@@ -132,12 +138,16 @@
 
     (testing "inserting additional account"
       (mutate! @store :account/create {:account/name  "a3"
+                                       :account/foo2bar "baz"
                                        :account/state :active}))
 
     (testing "can retrieve account 3"
       (is (= {:account/name  "a3"
+              :account/foo2bar "baz"
               :account/state :active}
-             (query @store [:account/id 3] [:account/name :account/state]))))
+             (query @store [:account/id 3] [:account/name
+                                            :account/foo2bar
+                                            :account/state]))))
 
     (testing "can retrieve roles for account 1"
       (is (= {:role/name "a0r0"}
