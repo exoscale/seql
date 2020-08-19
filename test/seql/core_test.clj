@@ -69,7 +69,21 @@
     (is (= [:foo.bar :foo__bar] (c/transform-out :foo/bar))))
 
   (testing "turning qualified-keyword to table id for join context"
-    (is (= :foo.bar (c/transform-for-join :foo/bar)))))
+    (is (= :foo.bar (c/transform-for-join :foo/bar))))
+
+  (testing "turning qualified-keyword with numbers left intact"
+    (is (= :foo.bar2baz (c/transform-for-join :foo/bar2baz)))
+    (is (= :foo.bar2baz4 (c/transform-for-join :foo/bar2baz4)))
+    (is (= :foo.b88ar2baz4 (c/transform-for-join :foo/b88ar2baz4))))
+
+  (testing "turning qualified-keyword with snake-case conversion"
+    (is (= :foo.bar-baz (c/transform-for-join :foo/bar_baz))))
+
+  (testing "turning qualified-keyword with camel-case conversion"
+    (is (= :foo.bar-baz (c/transform-for-join :foo/barBaz))))
+
+  (testing "turning qualified-keyword with non-letter/number"
+    (is (= :foo.bar#baz (c/transform-for-join :foo/bar#baz)))))
 
 (deftest add-ident-test
   (testing "generation of ident selection clause"
