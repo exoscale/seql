@@ -1,7 +1,6 @@
 (ns seql.core
   "A way to interact with stored entities"
   (:require [next.jdbc              :as jdbc]
-            [next.jdbc.result-set   :as rs]
             [clojure.string         :as str]
             [clojure.spec.alpha     :as s]
             [honeysql.core          :as sql]
@@ -168,16 +167,19 @@
                              (prepare-field schema field))]) ; backward compat transforms
 
       (= type :field)
-      (if-not (= 1 (count args))
-        (throw (ex-info (format "bad arity for field condition: %s" condition)
-                        {:type      :error/illegal-argument
-                         :code      400
-                         :condition condition
-                         :args      args}))
-        (h/merge-where q [:= (table-field table field)
-                          (->> (c/write field
-                                        (first args))
-                               (prepare-field schema field))]))
+      (case (count args)
+        0 (throw (ex-info (format "bad arity for field condition: %s" condition)
+                          {:type      :error/illegal-argument
+                           :code      400
+                           :condition condition
+                           :args      args}))
+        1 (h/merge-where q [:= (table-field table field)
+                            (->> (c/write field
+                                          (first args))
+                                 (prepare-field schema field))])
+        (h/merge-where q [:in (table-field table field)
+                          (->> (map #(c/write field %) args)
+                               (map #(prepare-field schema field %)))]))
 
       :else
       (if-not (= (:arity params) (count args))

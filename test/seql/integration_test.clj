@@ -158,9 +158,13 @@
                                              #:user{:name "u1a0"}]}
              (query @store [:role/id 0] [:role/name {:role/users [:user/name]}]))))
 
-    (testing "two accounts are active"
+    (testing "three accounts are active"
       (is (= [{:account/name "a0"} {:account/name "a1"} {:account/name "a3"}]
              (query @store :account [:account/name] [[:account/active]]))))
+
+    (testing "get active and suspended accounts"
+      (is (= [{:account/name "a0"} {:account/name "a1"} #:account{:name "a2"} {:account/name "a3"}]
+             (query @store :account [:account/name] [[:account/state :active :suspended]]))))
 
     (testing "unpaid invoices"
       (is (= [{:invoice/total 2

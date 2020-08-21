@@ -41,12 +41,12 @@
     (testing "field conditions must respect arity"
       (is (thrown-with-msg? clojure.lang.ExceptionInfo
                             #"bad arity for field condition: :a/state"
-                            (add-condition schema empty-query [:a/state])))
+                            (add-condition schema empty-query [:a/state]))))
 
-      (is (thrown-with-msg? clojure.lang.ExceptionInfo
-                            #"bad arity for field condition: :a/state"
-                            (add-condition schema empty-query
-                                           [:a/state "active" "suspended"]))))
+    (testing "adding multiple fields creates a :in clause"
+      (is (= {:where [:in :a.state ["active" "suspended"]]}
+             (add-condition schema empty-query
+                            [:a/state "active" "suspended"]))))
 
     (testing "function conditions must respect arity"
       (is (thrown-with-msg? clojure.lang.ExceptionInfo
