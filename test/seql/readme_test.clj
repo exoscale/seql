@@ -44,7 +44,6 @@
                         (condition :active :state :active)
                         (condition :state)))
         env     {:schema schema :jdbc jdbc-config}]
-
     (testing "ID lookups work"
       (is (= #:account{:name "a0" :state :active}
              (query env [:account/name "a0"] [:account/name :account/state]))))

@@ -156,13 +156,12 @@
   "If conditions are provided, add them to the query"
   [schema q [condition & args]]
   (let [entity (-> condition namespace keyword)
-        table  (get-in schema [entity :table])
         params (get-in schema [entity :conditions condition])
         type   (:type params)
         field  (:field params)]
     (cond
       (= type :static)
-      (h/merge-where q [:= (table-field table (:field params))
+      (h/merge-where q [:= (table-field entity (:field params))
                         (->> (c/write field (:value params))
                              (prepare-field schema field))]) ; backward compat transforms
 
@@ -173,11 +172,11 @@
                            :code      400
                            :condition condition
                            :args      args}))
-        1 (h/merge-where q [:= (table-field table field)
+        1 (h/merge-where q [:= (table-field entity field)
                             (->> (c/write field
                                           (first args))
                                  (prepare-field schema field))])
-        (h/merge-where q [:in (table-field table field)
+        (h/merge-where q [:in (table-field entity field)
                           (->> (map #(c/write field %) args)
                                (map #(prepare-field schema field %)))]))
 
