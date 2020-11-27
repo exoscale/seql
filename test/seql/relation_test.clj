@@ -109,4 +109,43 @@
                           {:b/id 5 :b/c [{:c/id 15} {:c/id 16} {:c/id 17}]}]}]]
 
       (is (= result (recompose-relations {}  fields records)))
-      (is (= result (recompose-relations {}  fields (shuffle records)))))))
+      (is (= result (recompose-relations {}  fields (shuffle records))))))
+
+  (testing "Recompose relations with map"
+
+    (let [fields  [:a/id
+                   :a/data
+                   {:a/b [:b/id
+                          :b/data]}]
+          records [{:a/id 0
+                    :a/data {:foo 3}
+                    :b/id 0
+                    :b/data {:foo 0}}
+                   {:a/id 0
+                    :a/data {:foo 3}
+                    :b/id 1
+                    :b/data {:foo 1}}
+                   {:a/id 0
+                    :a/data {:foo 3}
+                    :b/id 2
+                    :b/data {:foo 2}}
+                   {:a/id 0
+                    :a/data {:foo 3}
+                    :b/id 3
+                    :b/data {:foo 3}}
+                   {:a/id 0
+                    :a/data {:foo 3}
+                    :b/id 4
+                    :b/data {:foo 4}}
+                   {:a/id 0
+                    :a/data {:foo 3}
+                    :b/id 5}]
+          result [{:a/id 0
+                   :a/data {:foo 3}
+                   :a/b [{:b/id 0 :b/data {:foo 0}}
+                         {:b/id 1 :b/data {:foo 1}}
+                         {:b/id 2 :b/data {:foo 2}}
+                         {:b/id 3 :b/data {:foo 3}}
+                         {:b/id 4 :b/data {:foo 4}}
+                         {:b/id 5}]}]]
+      (is (= result (recompose-relations {} fields (shuffle records)))))))

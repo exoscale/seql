@@ -296,6 +296,17 @@
            (filter #(not (contains? extra-fields (key %))))
            (into {})))))
 
+(defn sort-fn
+  "Build a sort function for relations. Maps values are replaced by nil
+  in order to not use them in the comparison."
+  [fields]
+  (comp vec
+        (fn [f] (map #(if (map? %)
+                        nil
+                        %)
+                     f))
+        (apply juxt fields)))
+
 (defn recompose-relations
   "The join query perfomed by `query` returns a flat list of entries,
    potentially unsorted (this is database implementation specific)
@@ -314,7 +325,7 @@
           (walk-tree [fields records]
             (let [plain-fields (remove map? fields)
                   relations    (filter map? fields)
-                  partitioner  (apply juxt plain-fields)
+                  partitioner  (sort-fn plain-fields)
                   extract      #(select-keys % plain-fields)
                   groups       (->> (sort-by partitioner records)
                                     (partition-by partitioner))]
