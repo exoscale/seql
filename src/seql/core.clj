@@ -6,6 +6,7 @@
             [honeysql.core          :as sql]
             [honeysql.helpers       :as h]
             [exoscale.coax          :as sc]
+            [exoscale.cloak         :as cloak]
             [seql.coerce            :as c]
             [seql.spec]
             [seql.string :as seql-str]))
@@ -301,7 +302,7 @@
   in order to not use them in the comparison."
   [fields]
   (comp vec
-        (fn [f] (map #(if (map? %)
+        (fn [f] (map #(if (or (map? %) (cloak/secret? %))
                         nil
                         %)
                      f))
