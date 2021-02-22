@@ -3,7 +3,27 @@
   (:refer-clojure :exclude [read])
   (:require [clojure.edn :as edn]
             [clojure.spec.alpha :as s]
-            [exoscale.coax :as c]))
+            [exoscale.coax :as c]
+            [exoscale.coax :as sc]))
+
+(defprotocol Coercion
+  (get-name [this])
+  (get-coercer [this spec])
+  (get-validater [this spec])
+  (get-explainer [this spec]))
+
+(def default-coercion
+  (reify Coercion
+    (get-name [_] :spec)
+    (get-coercer [_ spec]
+      (fn [value]
+        (sc/coerce spec value)))
+    (get-validater [_ spec]
+      (fn [value]
+        (s/valid? spec value)))
+    (get-explainer [_ spec]
+      (fn [value]
+        (s/explain-str spec value)))))
 
 (def spec-registry (atom {::reader {}
                           ::writer {::c/idents {`keyword? (fn [x _] (name x))}}}))

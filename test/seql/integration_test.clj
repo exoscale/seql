@@ -8,7 +8,10 @@
             [db.fixtures        :refer [jdbc-config with-db-fixtures]]
             [clojure.test       :refer [use-fixtures testing deftest is]]
             [clojure.spec.alpha :as s]
-            [honeysql.helpers   :as h]))
+            [honeysql.helpers :as h]
+            [malli.core :as m]
+            [malli.transform :as mt])
+  (:import (seql.coerce Coercion)))
 
 (use-fixtures :each (with-db-fixtures :small))
 
@@ -238,6 +241,67 @@
     (testing "we can mutate when initial precondition matches"
       (is (seq (mutate! env :user/update {:user/id 0
                                           :user/email "u0@a0"}))))
+
+    (testing "we cannot mutate when initial precondition matches but pre.valid? fails"
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Precondition"
+                            (mutate! (assoc-in env [:schema :user :mutations :user/update
+                                                    :pre 0 :valid?] (constantly false))
+                                     :user/update {:user/id 0
+                                                   :user/email "u0@a0"}))))
+
+    (testing "we have a invalid precondition"
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Precondition"
+                            (mutate! env :user/update {:user/id 1
+                                                       :user/email "u0@a0"}))))))
+
+(deftest mutation-with-malli
+  (let [malli-coercion (reify Coercion
+                         (get-name [_] :malli)
+                         (get-coercer [_ spec]
+                           (fn [value]
+                             (m/decode spec value mt/string-transformer)))
+                         (get-validater [_ spec]
+                           (fn [value]
+                             (m/validate spec value)))
+                         (get-explainer [_ spec]
+                           (fn [value]
+                             (m/explain spec value))))
+        malli-schema [:map [:user/id integer?] [:user/email string?]]
+        schema {:user
+                {:entity :user
+                 :table :user
+                 :idents [:user/id]
+                 :fields [:user/id
+                          :user/name
+                          :user/email
+                          :user/account-id]
+                 :mutations {:user/create {:spec malli-schema
+                                           :handler (fn [params]
+                                                      (-> (h/insert-into :user)
+                                                          (h/values [params])))}
+                             :user/update {:spec malli-schema
+                                           :pre [{:name ::u0a0?
+                                                  :query (fn [user]
+                                                           (-> (h/select :*)
+                                                               (h/from :user)
+                                                               (h/where [:= :name "u0a0"]
+                                                                        [:= :id (:user/id user)])))}]
+                                           :handler
+                                                 (fn [{:keys [:user/id] :as params}]
+                                                   (-> (h/update :user)
+                                                       (h/sset (dissoc params :user/id))
+                                                       (h/where [:= :id id])))}}}}
+        env (assoc env :schema schema
+                       :coercion malli-coercion)]
+
+    (testing "we can mutate when initial precondition matches"
+      (is (seq (mutate! env :user/update {:user/id 0
+                                          :user/email "u0@a0"}))))
+
+    (testing "we can't mutate when params is not valid"
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"mutation params"
+                            (mutate! env :user/update {:user/id 0
+                                                       :user/email 0}))))
 
     (testing "we cannot mutate when initial precondition matches but pre.valid? fails"
       (is (thrown-with-msg? clojure.lang.ExceptionInfo #"^Precondition"

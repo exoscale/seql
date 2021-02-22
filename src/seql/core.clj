@@ -419,15 +419,20 @@
   ([env mutation params metadata]
    (s/assert ::mutate-args [env mutation params])
    (let [{:keys [spec handler pre]} (find-mutation env mutation)
+         coercion                   (get env :coercion c/default-coercion)
+         coercer                    (c/get-coercer coercion spec)
+         validater                  (c/get-validater coercion spec)
          listeners                  (find-listeners env mutation)
-         params                     (sc/coerce spec params)]
-     (when-not (s/valid? spec params)
-       (throw (ex-info (format "mutation params do not conform to %s: %s"
-                               spec
-                               (s/explain-str spec params))
-                       {:type    :error/illegal-argument
-                        :code    400
-                        :explain (s/explain-str spec params)})))
+         params                     (coercer params)]
+     (when-not (validater params)
+       (let [explainer (c/get-explainer coercion spec)
+             explaination (explainer params)]
+         (throw (ex-info (format "mutation params do not conform to %s: %s"
+                                 spec
+                                 explaination)
+                         {:type    :error/illegal-argument
+                          :code    400
+                          :explain explaination}))))
      (let [transform (process-transforms-fn (:schema env)
                                             :serialize)
            transformed-params (-> (process-write-transforms params)

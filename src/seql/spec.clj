@@ -125,8 +125,11 @@
 
 (s/def :seql.core/jdbc any?)
 
+(s/def :seql.core/coercion instance?)
+
 (s/def :seql.core/env
-  (s/keys :req-un [:seql.core/schema :seql.core/jdbc]))
+  (s/keys :req-un [:seql.core/schema :seql.core/jdbc]
+          :opt-un [:seql.core/coercion]))
 
 (s/def :seql.core/condition (s/cat :name keyword? :args (s/* any?)))
 

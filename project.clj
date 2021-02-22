@@ -25,6 +25,7 @@
                          :pedantic?      :warn
                          :source-paths   ["dataset"]
                          :resource-paths ["dataset"]}
+               :test {:dependencies [[metosin/malli "0.2.1"]]}
                :uberjar {:pedantic? :abort}}
     :dependencies ~deps
     :source-paths ~paths))
