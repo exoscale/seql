@@ -21,10 +21,10 @@
                        :source-paths   ["dataset"]
                        :resource-paths ["dataset"]}
              :uberjar {:pedantic? :abort}}
-  :dependencies [[org.clojure/clojure               "1.10.3"]
-                 [com.github.seancorfield/next.jdbc "1.2.731"]
-                 [honeysql/honeysql                 "1.0.461"]
-                 [camel-snake-case/camel-snake-case "0.4.2"]
-                 [exoscale/coax                     "1.0.0-alpha13"]
-                 [exoscale/cloak                    "0.1.8"]]
+  :dependencies [[org.clojure/clojure                 "1.10.3"]
+                 [com.github.seancorfield/next.jdbc   "1.2.731"]
+                 [honeysql/honeysql                   "1.0.461"]
+                 [camel-snake-kebab/camel-snake-kebab "0.4.2"]
+                 [exoscale/coax                       "1.0.0-alpha13"]
+                 [exoscale/cloak                      "0.1.8"]]
   :source-paths ["src"])
