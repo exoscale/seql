@@ -27,30 +27,9 @@
   []
   {:type :ident :context ::field})
 
-(def transforms
-  "Commonly needed transforms for `transform`"
-  {:keyword [keyword name]
-   :edn     [edn/read-string pr-str]})
-
-(defn ^:deprecated transform
-  "Provide transformation for the field. Transformations
-   can either be a keyword, pointing to a known transformation
-   (see `transforms` for details), or a tuple of
-   `[deserializer serializer]`"
-  ([short-name]
-   {:type    :transform
-    :context ::field
-    :val     (or (get transforms short-name)
-                 (throw (ex-info "bad transform shortcut" {})))})
-  ([out in]
-   {:type    :transform
-    :context ::field
-    :val     [out in]}))
-
 (defn field
   "Define an entity field, with optional details.
-   Possible detail functions include: `transform`,
-   `ident`"
+   Possible detail functions include: `ident`"
   [id & details]
   (ensure-context! ::field details)
   (conj (mapv #(assoc % :field id :context ::entity) details)
@@ -175,10 +154,6 @@
 (defmethod merge-entity-component :ident
   [{:keys [entity] :as schema} {:keys [field]}]
   (update schema :idents conj (qualify entity field)))
-
-(defmethod merge-entity-component :transform
-  [{:keys [entity] :as schema} {:keys [field val]}]
-  (update schema :transforms assoc (qualify entity field) val))
 
 (defmethod merge-entity-component :compound
   [{:keys [entity] :as schema} {:keys [field source handler]}]

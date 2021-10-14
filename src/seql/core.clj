@@ -129,29 +129,6 @@
                         {:type  :error/illegal-argument
                          :field field}))))))
 
-(defn build-query
-  "Build a base query preparing joins when needed"
-  [env entity fields]
-  (let [[entity-name entity-def ident args] (entity-schema env entity)]
-    (cond-> (reduce (process-field (:schema env) entity-def)
-                    {:from     [[(:table entity-def) entity-name]]
-                     :select   []
-                     :left-join []
-                     ::meta    {::entities #{entity}
-                                ::entity   entity
-                                ::fields   []}}
-                    fields)
-      (some? ident)
-      (add-ident entity-name ident (first args)))))
-
-(defn prepare-field
-  "Conditionally apply field transform on field id if schema defines
-  any"
-  [schema field value]
-  (if-let [f (second (get-in schema [(keyword (namespace field)) :transforms field]))]
-    (f value)
-    value))
-
 (defn add-condition
   "If conditions are provided, add them to the query"
   [schema q [condition & args]]
@@ -162,8 +139,7 @@
     (cond
       (= type :static)
       (h/where q [:= (table-field entity (:field params))
-                  (->> (c/write field (:value params))
-                       (prepare-field schema field))]) ; backward compat transforms
+                  (->> (c/write field (:value params)))])
 
       (= type :field)
       (case (count args)
@@ -173,12 +149,9 @@
                            :condition condition
                            :args      args}))
         1 (h/where q [:= (table-field entity field)
-                      (->> (c/write field
-                                    (first args))
-                           (prepare-field schema field))])
+                      (c/write field (first args))])
         (h/where q [:in (table-field entity field)
-                    (->> (map #(c/write field %) args)
-                         (map #(prepare-field schema field %)))]))
+                    (map #(c/write field %) args)]))
 
       :else
       (if-not (= (:arity params) (count args))
@@ -190,14 +163,29 @@
         (h/where q (apply (:handler params)
                           args))))))
 
+(defn build-query
+  "Build a base query preparing joins when needed"
+  [env entity fields [entity-name entity-def ident args]]
+  (cond-> (reduce (process-field (:schema env) entity-def)
+                  {:from     [[(:table entity-def) entity-name]]
+                   :select    []
+                   :left-join []
+                   ::meta     {::entities #{entity}
+                               ::entity   entity
+                               ::fields   []}}
+                  fields)
+    (some? ident)
+    (add-ident entity-name ident (first args))))
+
 (defn sql-query
   "Build a SQL query for the pull-syntax expressed. This is an incremental
    data-based creation of a "
   [env entity fields conditions]
-  (let [[_ entity-def _ _] (entity-schema env entity)
-        res (reduce #(add-condition (:schema env) %1 %2)
-                    (build-query env entity (or fields (:defaults entity-def)))
-                    conditions)]
+  (let [[_ entity-def :as es] (entity-schema env entity)
+        fields                (or fields (:defaults entity-def))
+        res                   (reduce #(add-condition (:schema env) %1 %2)
+                                      (build-query env entity fields es)
+                                      conditions)]
     [(dissoc res ::meta) (::meta res)]))
 
 
@@ -225,28 +213,6 @@
   "Qualify a result with the appropriate namespace"
   [m]
   (reduce-kv #(assoc %1 (qualify-key %2) %3) {} m))
-
-(defn- process-transforms-fn
-  "Yield a function which processes records and applies predefined
-   transforms"
-  [schema type]
-
-  (let [;; FIXME we could imagine memoizing this,
-        ;; schemas are quite static
-        transforms (into {}
-                         (comp (map val)
-                               (map #(get % :transforms)))
-                         schema)
-        extract    (case type :deserialize first :serialize second)]
-    (fn [m]
-      (into {}
-            (map (fn [[k v]]
-                   (let [transform (extract (get transforms k))]
-                     [k (cond-> v
-                          (and (some? v)
-                               (some? transform))
-                          transform)])))
-            m))))
 
 (defn- process-read-transforms
   [m]
@@ -413,10 +379,7 @@
                        {:type    :error/illegal-argument
                         :code    400
                         :explain (s/explain-str spec params)})))
-     (let [transform (process-transforms-fn (:schema env)
-                                            :serialize)
-           transformed-params (-> (process-write-transforms params)
-                                  transform) ; backward compat transforms
+     (let [transformed-params (process-write-transforms params)
            statement (-> transformed-params
                          (handler)
                          (sql/format))
