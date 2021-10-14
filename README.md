@@ -55,7 +55,7 @@ query results
 ```
 
 **seql** is built on top of
-[honeysql](https://github.com/jkk/honeysql) and makes that dependency
+[honeysql](https://github.com/seancorfield/honeysql) and makes that dependency
 apparent in some case, particularly for mutations.
 
 ## Documentation
@@ -65,6 +65,10 @@ designing schemas and queries incrementally, as well as full API
 documentation. All are available on [the documentation website](https://exoscale.github.io/seql/).
 
 ## Changelog
+
+### 0.1.29
+
+- Upgrade to recent `next.jdbc` and `honeysql`
 
 ### 0.1.2
 

@@ -8,7 +8,8 @@
             [db.fixtures        :refer [jdbc-config with-db-fixtures]]
             [clojure.test       :refer [use-fixtures testing deftest is]]
             [clojure.spec.alpha :as s]
-            [honeysql.helpers   :as h]))
+            [clojure.string :as str]
+            [honey.sql.helpers  :as h]))
 
 (use-fixtures :each (with-db-fixtures :small))
 
@@ -44,7 +45,7 @@
                      ::account
                      [{:keys [:account/id] :as params}]
                      (-> (h/update :account)
-                         (h/sset (dissoc params :account/id))
+                         (h/set (dissoc params :account/id))
                          (h/where [:= :id id]))))
    (entity :user
            (field :id          (ident))
@@ -231,7 +232,7 @@
                                            :handler
                                            (fn [{:keys [:user/id] :as params}]
                                              (-> (h/update :user)
-                                                 (h/sset (dissoc params :user/id))
+                                                 (h/set (dissoc params :user/id))
                                                  (h/where [:= :id id])))}}}}
         env (assoc env :schema schema)]
 

@@ -1,15 +1,14 @@
 (ns seql.core
   "A way to interact with stored entities"
-  (:require [next.jdbc              :as jdbc]
-            [clojure.string         :as str]
-            [clojure.spec.alpha     :as s]
-            [honeysql.core          :as sql]
-            [honeysql.helpers       :as h]
-            [exoscale.coax          :as sc]
-            [exoscale.cloak         :as cloak]
-            [seql.coerce            :as c]
-            [seql.spec]
-            [seql.string :as seql-str]))
+  (:require [next.jdbc           :as jdbc]
+            [clojure.string      :as str]
+            [clojure.spec.alpha  :as s]
+            [honey.sql           :as sql]
+            [honey.sql.helpers   :as h]
+            [exoscale.coax       :as sc]
+            [seql.coerce         :as c]
+            [seql.string         :as seql-str]
+            [seql.spec]))
 
 ;; SQL Query Builder
 ;; =================
@@ -52,7 +51,7 @@
 (defn add-ident
   "Add a where clause for an ident"
   [q entity-name ident arg]
-  (h/merge-where q [:= (table-field entity-name ident) arg]))
+  (h/where q [:= (table-field entity-name ident) arg]))
 
 (defmulti process-join
   "Process join by relation type. Takes a base query, a map with
@@ -96,28 +95,28 @@
 
 (defn process-field
   "Add necessary stanzas to realize field targeting with SQL"
-  [schema {:keys [relations compounds fields entity]}]
+  [schema {:keys [relations compounds fields]}]
   (let [rel-set      (set (keys relations))
         compound-set (set (keys compounds))
         field-set    (set fields)]
     (fn [q field]
       (cond
         (and (map? field) (contains? rel-set (-> (keys field) first)))
-        (let [rel-key      (first (keys field))
-              subfields    (first (vals field))
-              rel-schema   (get relations rel-key)
-              subentity    (:remote-entity rel-schema)]
+        (let [rel-key    (first (keys field))
+              subfields  (first (vals field))
+              rel-schema (get relations rel-key)
+              subentity  (:remote-entity rel-schema)]
           (reduce (process-field schema (get schema subentity))
                   (process-join q
-                                (assoc (get schema subentity)
-                                       :entity subentity)
+                                (assoc (get schema subentity) :entity subentity)
                                 rel-schema)
                   subfields))
 
         (contains? compound-set field)
-        (let [src (:source (get compounds field))]
+        (let [src                (:source (get compounds field))
+              transformed-fields (mapv transform-out src)]
           (-> q
-              (update :select concat (mapv transform-out src))
+              (update :select concat transformed-fields)
               (update-in [::meta ::fields] conj field)))
 
         (contains? field-set field)
@@ -162,9 +161,9 @@
         field  (:field params)]
     (cond
       (= type :static)
-      (h/merge-where q [:= (table-field entity (:field params))
-                        (->> (c/write field (:value params))
-                             (prepare-field schema field))]) ; backward compat transforms
+      (h/where q [:= (table-field entity (:field params))
+                  (->> (c/write field (:value params))
+                       (prepare-field schema field))]) ; backward compat transforms
 
       (= type :field)
       (case (count args)
@@ -173,13 +172,13 @@
                            :code      400
                            :condition condition
                            :args      args}))
-        1 (h/merge-where q [:= (table-field entity field)
-                            (->> (c/write field
-                                          (first args))
-                                 (prepare-field schema field))])
-        (h/merge-where q [:in (table-field entity field)
-                          (->> (map #(c/write field %) args)
-                               (map #(prepare-field schema field %)))]))
+        1 (h/where q [:= (table-field entity field)
+                      (->> (c/write field
+                                    (first args))
+                           (prepare-field schema field))])
+        (h/where q [:in (table-field entity field)
+                    (->> (map #(c/write field %) args)
+                         (map #(prepare-field schema field %)))]))
 
       :else
       (if-not (= (:arity params) (count args))
@@ -188,8 +187,8 @@
                          :code      400
                          :condition condition
                          :args      args}))
-        (h/merge-where q (apply (:handler params)
-                                args))))))
+        (h/where q (apply (:handler params)
+                          args))))))
 
 (defn sql-query
   "Build a SQL query for the pull-syntax expressed. This is an incremental
@@ -206,7 +205,7 @@
 ;; ==============================
 
 
-(defn extract-ident
+(defn- extract-ident
   "When a query is targetting an ident,
    extract the first result"
   [entity result]
@@ -222,12 +221,12 @@
     (keyword (seql-str/->kebab ns)
              (seql-str/->kebab tail))))
 
-(defn qualify-result
+(defn- qualify-result
   "Qualify a result with the appropriate namespace"
   [m]
   (reduce-kv #(assoc %1 (qualify-key %2) %3) {} m))
 
-(defn process-transforms-fn
+(defn- process-transforms-fn
   "Yield a function which processes records and applies predefined
    transforms"
   [schema type]
@@ -249,31 +248,21 @@
                           transform)])))
             m))))
 
-(defn process-read-transforms
+(defn- process-read-transforms
   [m]
   (into {}
         (map (fn [[k v]]
                [k (c/read k v)]))
         m))
 
-(defn process-write-transforms
+(defn- process-write-transforms
   [m]
   (into {}
         (map (fn [[k v]]
                [k (c/write k v)]))
         m))
 
-(defn compound-extra-fields
-  "Figure out which fields aren't needed once compounds have been
-   processed on a record"
-  [compounds fields]
-  (let [compound-fields (-> fields
-                            (filter #(contains? (set (keys compounds)) %))
-                            (mapcat (:source #(get compounds %))))]
-    (set
-     (remove (set fields) compound-fields))))
-
-(defn merge-compounds-fn
+(defn- merge-compounds-fn
   "Merge compounds into record"
   [compounds]
   (fn [record k]
@@ -281,32 +270,25 @@
           extract                  (apply juxt source)]
       (assoc record k (apply handler (extract record))))))
 
-(defn process-compounds-fn
+(defn- process-compounds-fn
   "Yield a schema-specific function to process compounds on the fly"
   [schema {::keys [fields]}]
   (let [;; FIXME another one we could memoize
-        compounds    (into {}
-                           (comp (map val)
-                                 (map :compounds))
-                           schema)
-        extra-fields (compound-extra-fields compounds fields)]
+        compounds (into {}
+                        (comp (map val)
+                              (map :compounds))
+                        schema)]
     (fn [m]
       (->> fields
            (filter #(contains? (set (keys compounds)) %))
            (reduce (merge-compounds-fn compounds) m)
-           (filter #(not (contains? extra-fields (key %))))
            (into {})))))
 
-(defn sort-fn
+(defn- sort-fn
   "Build a sort function for relations. Maps values are replaced by nil
   in order to not use them in the comparison."
   [fields]
-  (comp vec
-        (fn [f] (map #(if (or (map? %) (cloak/secret? %))
-                        nil
-                        %)
-                     f))
-        (apply juxt fields)))
+  (comp vec #(for [e %] (when-not (map? e) e)) (apply juxt fields)))
 
 (defn recompose-relations
   "The join query perfomed by `query` returns a flat list of entries,
@@ -326,7 +308,8 @@
           (walk-tree [fields records]
             (let [plain-fields (remove map? fields)
                   relations    (filter map? fields)
-                  partitioner  (sort-fn plain-fields)
+                  partitioner  (sort-fn
+                                plain-fields)
                   extract      #(select-keys % plain-fields)
                   groups       (->> (sort-by partitioner records)
                                     (partition-by partitioner))]
@@ -338,7 +321,7 @@
                           relations)))))]
     (walk-tree fields records)))
 
-(defn relation-fields
+(defn- relation-fields
   "Builds a map of <entity> -> #{<relation fields> ...}"
   [entity-ns row]
   (reduce (fn [rows-by-rel [field _ :as m]]
@@ -349,22 +332,25 @@
           {}
           row))
 
-(defn remove-empty-relations
-  "remove cols that are all nils for an entity relation"
+(defn- remove-empty-relations-keep-fn
+  [entity-ns row]
+  (let [rels-by-entity (relation-fields entity-ns row)
+        removable-cols (into #{}
+                             (comp (keep (fn [[_ cols]]
+                                           (when (every? nil? (vals cols))
+                                             (map first cols))))
+                                   cat)
+                             rels-by-entity)]
+    (reduce dissoc row removable-cols)))
+
+(defn- remove-empty-relations
+  "Remove cols that are all nils for an entity relation"
   [entity]
   (let [entity-ns (cond-> entity
                     (coll? entity)
                     first
                     :then namespace)]
-    (keep (fn [row]
-            (let [rels-by-entity (relation-fields entity-ns row)
-                  removable-cols (into #{}
-                                       (comp (keep (fn [[_ cols]]
-                                                     (when (every? nil? (vals cols))
-                                                       (map first cols))))
-                                             cat)
-                                       rels-by-entity)]
-              (apply dissoc row removable-cols))))))
+    (keep (partial remove-empty-relations-keep-fn entity-ns))))
 
 (defn query
   "Look up entities."
@@ -377,13 +363,12 @@
    (s/assert ::query-args [env entity fields conditions])
    (let [[q qmeta] (sql-query env entity fields conditions)
          schema    (:schema env)]
-     (->> (jdbc/plan (:jdbc env) (sql/format q))
+     (->> (jdbc/execute! (:jdbc env) (sql/format q))
           (into []
                 (comp
                  (map qualify-result)
                  (remove-empty-relations entity)
                  (map process-read-transforms)
-                 (map (process-transforms-fn schema :deserialize)) ; backward compat
                  (map (process-compounds-fn schema qmeta))))
           (recompose-relations schema fields)
           (extract-ident entity)))))
@@ -391,7 +376,7 @@
 ;; Mutation support
 ;; ================
 
-(defn find-mutation
+(defn- find-mutation
   "Fetch mutation description"
   [env mutation]
   (let [entity (-> mutation namespace keyword)]
@@ -401,13 +386,13 @@
                          :code     400
                          :mutation mutation})))))
 
-(defn find-listeners
+(defn- find-listeners
   "Fetch listeners"
   [env mutation]
   (let [entity (-> mutation namespace keyword)]
     (or (get-in env [:schema entity :listeners mutation]) {})))
 
-(defn success-result?
+(defn- success-result?
   [result]
   (some-> result first :next.jdbc/update-count pos?))
 

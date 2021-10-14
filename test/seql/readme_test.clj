@@ -5,9 +5,8 @@
                                    has-many has-one condition entity transform]]
             [db.fixtures   :refer [jdbc-config with-db-fixtures]]
             [clojure.test  :refer [use-fixtures testing deftest is]]
-            [clojure.spec.test.alpha :as st]
             [clojure.spec.alpha      :as s]
-            [honeysql.helpers        :as h]))
+            [honey.sql.helpers       :as h]))
 
 (use-fixtures :each (with-db-fixtures :small))
 
@@ -230,7 +229,7 @@
                                   [{:keys [id] :as params}]
                                   (-> (h/update :account)
                                       ;; values are fed unqualified
-                                      (h/sset (dissoc params :id))
+                                      (h/set (dissoc params :id))
                                       (h/where [:= :id id]))))
                 (entity :user
                         (field :id          (ident))

@@ -6,9 +6,9 @@
   value for the field is provided at query time, or functions which yield
   the appropriate where vector for honeysql.
   "
-  (:require [seql.core     :refer :all]
-            [clojure.test  :refer :all]
-            [honeysql.core :as sql]
+  (:require [seql.core          :refer [add-condition sql-query]]
+            [clojure.test       :refer [deftest is testing]]
+            [honey.sql          :as sql]
             [clojure.spec.alpha :as s]))
 
 (s/def :a/state #{:active :suspended})
@@ -113,7 +113,7 @@
                                             :field :a/state
                                             :value :active}}
                     :transforms {:a/state [keyword name]}}}]
-    (is (= ["SELECT a.id AS a__id FROM b a  WHERE a.state = ?" "active"]
+    (is (= ["SELECT a.id AS a__id FROM b AS a WHERE a.state = ?" "active"]
            (-> (sql-query {:schema schema} :a [:a/id] [[:a/active]])
                (first)
                (sql/format))))))
