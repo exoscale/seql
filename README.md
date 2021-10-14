@@ -58,12 +58,6 @@ query results
 [honeysql](https://github.com/seancorfield/honeysql) and makes that dependency
 apparent in some case, particularly for mutations.
 
-## Documentation
-
-**seql** provides two introductory documents to get started with
-designing schemas and queries incrementally, as well as full API
-documentation. All are available on [the documentation website](https://exoscale.github.io/seql/).
-
 ## Changelog
 
 ### 0.1.29
