@@ -281,7 +281,7 @@ At its core, mutations expect two things:
          (mutation :account/update ::account [{:keys [id] :as params}]
                    (-> (h/update :account)
                        ;; values are fed unqualified
-                       (h/sset (dissoc params :id))
+                       (h/set (dissoc params :id))
                        (h/where [:= :id id]))))
 ```
 
