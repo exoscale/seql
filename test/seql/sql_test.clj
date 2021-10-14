@@ -1,8 +1,8 @@
 (ns seql.sql-test
   "Tests that validate the shape of generated SQL queries"
-  (:require [seql.core     :refer :all]
-            [clojure.test  :refer :all]
-            [honeysql.core :as sql]))
+  (:require [seql.core     :refer [sql-query]]
+            [clojure.test  :refer [deftest is testing]]
+            [honey.sql     :as sql]))
 
 (deftest query-test
 
@@ -26,22 +26,25 @@
                   :fields [:c/id]}}}]
 
     (testing "basic single-layer query"
-      (is (= ["SELECT a.id AS a__id FROM a a    "]
+      (is (= ["SELECT a.id AS a__id FROM a AS a"]
              (sql/format
-              (sql-query env :a [:a/id] [])))))
+              (first
+               (sql-query env :a [:a/id] []))))))
 
     (testing "query for one nested entity"
       (is (= [(str "SELECT a.id AS a__id, b.id AS b__id "
-                   "FROM a a LEFT JOIN b b ON a.id = b.a_id   ")]
+                   "FROM a AS a LEFT JOIN b AS b ON a.id = b.a_id")]
              (sql/format
-              (sql-query env :a [:a/id {:a/b [:b/id]}] [])))))
+              (first
+               (sql-query env :a [:a/id {:a/b [:b/id]}] []))))))
 
     (testing "query for a two-level nested entity"
       (is (= [(str "SELECT a.id AS a__id, b.id AS b__id, c.id AS c__id "
-                   "FROM a a LEFT JOIN b b ON a.id = b.a_id "
-                   "LEFT JOIN c c ON b.id = c.b_id   ")]
+                   "FROM a AS a LEFT JOIN b AS b ON a.id = b.a_id "
+                   "LEFT JOIN c AS c ON b.id = c.b_id")]
              (sql/format
-              (sql-query env :a [:a/id {:a/b [:b/id {:b/c [:c/id]}]}] [])))))))
+              (first
+               (sql-query env :a [:a/id {:a/b [:b/id {:b/c [:c/id]}]}] []))))))))
 
 (deftest many-to-many-test
 
@@ -64,12 +67,14 @@
                   :fields [:i/id :i/a-id :i/b-id]}}}]
 
     (testing "basic single-layer query"
-      (is (= ["SELECT a.id AS a__id FROM a a    "]
+      (is (= ["SELECT a.id AS a__id FROM a AS a"]
              (sql/format
-              (sql-query env :a [:a/id] [])))))
+              (first
+               (sql-query env :a [:a/id] []))))))
 
     (testing "many-to-many query"
-      (is (= ["SELECT a.id AS a__id, b.id AS b__id FROM a a LEFT JOIN i ON a.id = i.a_id LEFT JOIN b b ON i.b_id = b.id   "]
+      (is (= ["SELECT a.id AS a__id, b.id AS b__id FROM a AS a LEFT JOIN i ON a.id = i.a_id LEFT JOIN b AS b ON i.b_id = b.id"]
              (sql/format
-              (sql-query env :a [:a/id {:a/b [:b/id]}]
-                         [])))))))
+              (first
+               (sql-query env :a [:a/id {:a/b [:b/id]}]
+                          []))))))))
