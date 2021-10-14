@@ -129,16 +129,6 @@
 
     (is (thrown-with-msg?
          clojure.lang.ExceptionInfo
-         #"The transform form should be used inside field definitions"
-         (make-schema (transform :keyword))))
-
-    (is (thrown-with-msg?
-         clojure.lang.ExceptionInfo
-         #"The transform form should be used inside field definitions"
-         (entity :example (transform :keyword))))
-
-    (is (thrown-with-msg?
-         clojure.lang.ExceptionInfo
          #"The one-to-many form should be used inside entity definitions"
          (make-schema
           (has-many :users [:id :user/account-id]))))

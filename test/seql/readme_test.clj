@@ -2,7 +2,7 @@
   "Reproduces examples provided in the README"
   (:require [seql.core     :refer [query mutate! add-listener!]]
             [seql.helpers  :refer [make-schema ident field compound mutation
-                                   has-many has-one condition entity transform]]
+                                   has-many has-one condition entity]]
             [db.fixtures   :refer [jdbc-config with-db-fixtures]]
             [clojure.test  :refer [use-fixtures testing deftest is]]
             [clojure.spec.alpha      :as s]
@@ -210,7 +210,7 @@
                 (entity :account
                         (field :id          (ident))
                         (field :name        (ident))
-                        (field :state       (transform :keyword))
+                        (field :state)
 
                         (has-many :users    [:id :user/account-id])
                         (has-many :invoices [:id :invoice/account-id])

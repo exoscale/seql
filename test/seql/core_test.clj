@@ -1,8 +1,7 @@
 (ns seql.core-test
   (:require [seql.core    :as c]
             [seql.helpers :refer [make-schema ident field compound
-                                  has-many has-one condition
-                                  entity transform]]
+                                  has-many has-one condition entity]]
             [clojure.test :refer [use-fixtures testing deftest is]]
             [db.fixtures  :refer [with-db-fixtures]]
             [clojure.spec.alpha :as s]))
@@ -10,6 +9,7 @@
 (use-fixtures :each (with-db-fixtures :small))
 
 (s/def :account/state keyword?)
+(s/def :invoice/state-bc keyword?)
 
 (def schema
   "Setup a realistic schema"
@@ -30,7 +30,7 @@
    (entity :invoice
            (field :id          (ident))
            (field :state)
-           (field :state-bc    (transform :keyword))
+           (field :state-bc)
            (field :total)
            (compound :paid?    [state] (= state :paid))
            (has-many :lines    [:id :line/invoice-id])
@@ -162,15 +162,8 @@
                                       :fields [:account/id :account/state]}}
          (c/build-query env
                         :account
-                        [:account/id :account/state]))))
-
-(deftest prepare-field-test
-  (testing "field has tranform defined"
-    (is (= (c/prepare-field schema :invoice/state-bc :foo)
-           "foo")))
-  (testing "field has no transform -> identity"
-    (is (= "bar" (c/prepare-field schema :invoice/id "bar")))
-    (is (= :bar (c/prepare-field schema :invoice/id :bar)))))
+                        [:account/id :account/state]
+                        (c/entity-schema env :account)))))
 
 (deftest test-qualify-key
   (testing "basic id -> keyword convertion"
