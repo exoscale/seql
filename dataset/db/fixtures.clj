@@ -29,7 +29,6 @@
           :account
           [[:id "int not null auto_increment"]
            [:name "varchar(32) not null"]
-           [:foo2bar "varchar(32)"]
            [:state "varchar(32) not null"]])
          (create-table-ddl
           :user

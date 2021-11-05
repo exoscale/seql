@@ -1,15 +1,23 @@
+---
 name: Clojure
-
 on: [push]
-
 jobs:
   build:
 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Lint
-      run: lein do with-profile uberjar deps, cljfmt check
-    - name: Install dependencies
-      run: lein test
+      - uses: DeLaGuardo/setup-clj-kondo@master
+        with: {version: '2020.04.05'}
+      - uses: actions/checkout@v2
+      - name: Lint
+        run: clj-kondo --lint .
+      - name: Install dependencies, Run syntax conformance checks
+        run: lein do with-profile uberjar deps, cljfmt check
+      - name: Run tests
+        run: lein coverage --junit --lcov
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v2
+        if: always()
+        with:
+          report_paths: 'target/coverage/junit.xml'
