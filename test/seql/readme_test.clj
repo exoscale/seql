@@ -1,281 +1,253 @@
 (ns seql.readme-test
   "Reproduces examples provided in the README"
-  (:require [seql.core     :refer [query mutate! add-listener!]]
-            [seql.helpers  :refer [make-schema ident field compound mutation
-                                   has-many has-one condition entity]]
+  (:require [seql.query :as q]
+            [seql.env :as env]
+            [seql.listener :as l]
+            [seql.mutation :as m]
+            [seql.helpers  :refer [make-schema field add-create-mutation
+                                   has-many has-one condition entity entity-from-spec]]
             [db.fixtures   :refer [jdbc-config with-db-fixtures]]
             [clojure.test  :refer [use-fixtures testing deftest is]]
-            [clojure.spec.alpha      :as s]
-            [honey.sql.helpers       :as h]))
+            [clojure.spec.alpha      :as s]))
 
 (use-fixtures :each (with-db-fixtures :small))
 
-(s/def :account/name string?)
-(s/def :account/state keyword?)
-(s/def ::account (s/keys :req [:account/name :account/state]))
+(create-ns 'my.entities)
+(create-ns 'my.entities.account)
+(create-ns 'my.entities.user)
+(create-ns 'my.entities.invoice)
+(create-ns 'my.entities.invoice-line)
+(create-ns 'my.entities.product)
+(create-ns 'my.entities.role)
 
-(s/def :invoice/state keyword?)
+(alias 'account 'my.entities.account)
+(alias 'user 'my.entities.user)
+(alias 'invoice 'my.entities.invoice)
+(alias 'invoice-line 'my.entities.invoice-line)
+(alias 'product 'my.entities.product)
+(alias 'role 'my.entities.role)
+
+(s/def ::account/name string?)
+(s/def ::account/state #{:active :suspended :terminated})
+(s/def ::account/account (s/keys :req [::account/name ::account/state]))
+
+(s/def ::user/name string?)
+(s/def ::user/email string?)
+(s/def ::user/user (s/keys :req [::user/name ::user/email]))
+
+(s/def ::invoice/state keyword?)
+(s/def ::invoice/total nat-int?)
+(s/def ::invoice/invoice (s/keys :req [::invoice/state ::invoice/total]))
+
+(s/def ::invoice-line/quantity nat-int?)
+(s/def ::invoice-line/invoice-line (s/keys :req [::invoice-line/quantity]))
+
+(s/def ::product/name string?)
+(s/def ::product/product (s/keys :req [::product/name]))
+
+(s/def ::role/name string?)
+(s/def ::role/role (s/keys :req [::role/name]))
 
 (deftest first-schema-test
   (let [schema (make-schema
-                (entity :account
-                        (field :id (ident))
+                (entity ::account/account
                         (field :state)
                         (field :name)))
         env    {:schema schema :jdbc jdbc-config}]
 
     (testing "there are three accounts"
-      (is (= [#:account{:name "a0" :state :active}
-              #:account{:name "a1" :state :active}
-              #:account{:name "a2" :state :suspended}]
-             (query env :account [:account/name :account/state]))))
+      (is (= [#::account{:name "a0" :state :active}
+              #::account{:name "a1" :state :active}
+              #::account{:name "a2" :state :suspended}]
+             (q/execute env ::account/account [::account/name ::account/state]))))
 
     (testing "ID lookups work"
-      (is (= #:account{:name "a0" :state :active}
-             (query env [:account/id 0] [:account/name :account/state]))))))
+      (is (= #::account{:name "a0" :state :active}
+             (q/execute env [::account/id 0] [::account/name ::account/state]))))))
+
+(deftest first-schema-variant-test
+  (let [schema (make-schema (entity-from-spec ::account/account))
+        env    {:schema schema :jdbc jdbc-config}]
+
+    (testing "there are three accounts"
+      (is (= [#::account{:name "a0" :state :active}
+              #::account{:name "a1" :state :active}
+              #::account{:name "a2" :state :suspended}]
+             (q/execute env ::account/account [::account/name ::account/state]))))
+
+    (testing "ID lookups work"
+      (is (= #::account{:name "a0" :state :active}
+             (q/execute env [::account/id 0] [::account/name ::account/state]))))
+
+    (testing "Field conditions can be applied"
+      (is (= [#::account{:name "a0" :state :active}
+              #::account{:name "a1" :state :active}]
+             (q/execute env ::account/account [::account/name ::account/state] [[::account/state :active]]))))))
 
 (deftest second-schema-test
   (let [schema (make-schema
-                (entity :account
-                        (field :id (ident))
-                        (field :name (ident))
-                        (field :state)
-                        (condition :active :state :active)
-                        (condition :state)))
+                (entity-from-spec ::account/account
+                                  (condition :active :state :active)))
         env     {:schema schema :jdbc jdbc-config}]
     (testing "ID lookups work"
-      (is (= #:account{:name "a0" :state :active}
-             (query env [:account/name "a0"] [:account/name :account/state]))))
+      (is (= #::account{:name "a0" :state :active}
+             (q/execute env [::account/name "a0"] [::account/name ::account/state]))))
 
     (testing "Static conditions work"
-      (is (= [#:account{:name "a0"}
-              #:account{:name "a1"}]
-             (query env :account [:account/name] [[:account/active]]))))
+      (is (= [#::account{:name "a0"}
+              #::account{:name "a1"}]
+             (q/execute env ::account/account [::account/name] [[::account/active]]))))
 
     (testing "Field conditions work"
-      (is (= [#:account{:name "a2"}]
-             (query env :account [:account/name] [[:account/state :suspended]]))))))
+      (is (= [#::account{:name "a2"}]
+             (q/execute env ::account/account [::account/name] [[::account/state :suspended]]))))))
 
 (deftest third-schema-test
   (let [schema (make-schema
-                (entity :account
-                        (field :id (ident))
-                        (field :name (ident))
-                        (field :state)
-                        (has-many :users [:id :user/account-id])
-                        (condition :active :state :active)
-                        (condition :state))
-
-                (entity :user
-                        (field :id (ident))
-                        (field :name (ident))
-                        (field :email)))
+                (entity-from-spec ::account/account
+                                  (has-many :users [:id ::user/account-id])
+                                  (condition :active :state :active))
+                (entity-from-spec ::user/user))
         env {:schema schema :jdbc jdbc-config}]
 
     (testing "Tree lookups work"
-      (is (= [#:account{:name  "a0"
-                        :state :active
-                        :users [#:user{:name "u0a0" :email "u0@a0"}
-                                #:user{:name "u1a0" :email "u1@a0"}]}
-              #:account{:name  "a1"
-                        :state :active
-                        :users [#:user{:name "u2a1" :email "u2@a1"}
-                                #:user{:name "u3a1" :email "u3@a1"}]}
-              #:account{:name "a2" :state :suspended :users []}]
-             (query env
-                    :account
-                    [:account/name
-                     :account/state
-                     {:account/users [:user/name :user/email]}]))))
+      (is (= [#::account{:name  "a0"
+                         :state :active
+                         :users [#::user{:name "u0a0" :email "u0@a0"}
+                                 #::user{:name "u1a0" :email "u1@a0"}]}
+              #::account{:name  "a1"
+                         :state :active
+                         :users [#::user{:name "u2a1" :email "u2@a1"}
+                                 #::user{:name "u3a1" :email "u3@a1"}]}
+              #::account{:name "a2" :state :suspended}]
+             (q/execute env
+                        ::account/account
+                        [::account/name
+                         ::account/state
+                         {::account/users [::user/name ::user/email]}]))))
 
     (testing "Direct lookups work too"
-      (is (= [#:user{:name "u0a0" :email "u0@a0"}
-              #:user{:name "u1a0" :email "u1@a0"}
-              #:user{:name "u2a1" :email "u2@a1"}
-              #:user{:name "u3a1" :email "u3@a1"}]
-             (query env :user [:user/name :user/email]))))))
-
-(deftest fourth-schema-test
-  (let [schema (make-schema
-                (entity :invoice
-                        (field :id (ident))
-                        (field :state)
-                        (field :total)
-                        (compound :paid? [state] (= state :paid))
-                        (condition :paid :state :paid)
-                        (condition :unpaid :state :unpaid)))
-        env    {:schema schema :jdbc jdbc-config}]
-
-    (testing "Compounds are realized"
-      (is (= [#:invoice{:total 2, :paid? false}
-              #:invoice{:total 2, :paid? true}
-              #:invoice{:total 4, :paid? true}]
-             (query env :invoice [:invoice/total :invoice/paid?]))))))
+      (is (= [#::user{:name "u0a0" :email "u0@a0"}
+              #::user{:name "u1a0" :email "u1@a0"}
+              #::user{:name "u2a1" :email "u2@a1"}
+              #::user{:name "u3a1" :email "u3@a1"}]
+             (q/execute env ::user/user [::user/name ::user/email]))))))
 
 (deftest fifth-schema-test
   (let [schema (make-schema
-                (entity :account
-                        (field :id          (ident))
-                        (field :name        (ident))
-                        (field :state)
-                        (has-many :users    [:id :user/account-id])
-                        (has-many :invoices [:id :invoice/account-id])
-
-                        (condition :active  :state :active)
-                        (condition :state))
-
-                (entity :user
-                        (field :id          (ident))
-                        (field :name        (ident))
-                        (field :email))
-
-                (entity :invoice
-                        (field :id          (ident))
-                        (field :state)
-                        (field :total)
-                        (compound :paid?    [state] (= state :paid))
-                        (has-many :lines    [:id :line/invoice-id])
-
-                        (condition :unpaid  :state :unpaid)
-                        (condition :paid    :state :paid))
-
-                (entity :product
-                        (field :id (ident))
-                        (field :name (ident)))
-
-                (entity [:line :invoiceline]
-                        (field :id          (ident))
-                        (has-one :product [:product-id :product/id])
-                        (field :quantity)))
+                (entity-from-spec ::account/account
+                                  (has-many :users    [:id ::user/account-id])
+                                  (has-many :invoices [:id ::invoice/account-id])
+                                  (condition :active  :state :active))
+                (entity-from-spec ::user/user)
+                (entity-from-spec ::invoice/invoice
+                                  (has-many :lines    [:id ::invoice-line/invoice-id])
+                                  (condition :unpaid  :state :unpaid)
+                                  (condition :paid    :state :paid))
+                (entity-from-spec ::product/product)
+                (entity-from-spec [::invoice-line/invoice-line :invoiceline]
+                                  (has-one :product [:product-id ::product/id])))
         env {:schema schema :jdbc jdbc-config}]
 
     (testing "there are three accounts"
-      (is (= [{:account/name "a0"} {:account/name "a1"} {:account/name "a2"}]
-             (query env :account [:account/name]))))
+      (is (= [{::account/name "a0"} {::account/name "a1"} {::account/name "a2"}]
+             (q/execute env ::account/account [::account/name]))))
 
     (testing "two accounts are active"
-      (is (= [{:account/name "a0"} {:account/name "a1"}]
-             (query env :account [:account/name] [[:account/active]]))))
+      (is (= [{::account/name "a0"} {::account/name "a1"}]
+             (q/execute env ::account/account [::account/name] [[::account/active]]))))
 
     (testing "one account is suspended (adding conditions)"
-      (is (= [{:account/name "a2"}]
-             (query env :account [:account/name]
-                    [[:account/state :suspended]]))))
+      (is (= [{::account/name "a2"}]
+             (q/execute env ::account/account [::account/name]
+                        [[::account/state :suspended]]))))
 
     (testing "can retrieve account by id"
-      (is (= {:account/name "a0"}
-             (query env [:account/id 0] [:account/name]))))
+      (is (= {::account/name "a0"}
+             (q/execute env [::account/id 0] [::account/name]))))
 
     (testing "can retrieve account by id (all fields)"
-      (is (= {:account/name "a0" :account/id 0 :account/state :active}
-             (query env [:account/id 0]))))
+      (is (= {::account/name "a0" ::account/state :active}
+             (q/execute env [::account/id 0]))))
 
     (testing "can retrieve account by name"
-      (is (= {:account/name "a0"}
-             (query env [:account/name "a0"] [:account/name]))))
+      (is (= {::account/name "a0"}
+             (q/execute env [::account/name "a0"] [::account/name]))))
 
-    (testing "can process transforms"
+    (testing "can process transforms through coax"
       (is (every? keyword?
-                  (map :invoice/state (query env :invoice [:invoice/state])))))
-
-    (testing "can produce compound fields"
-      (is (= {:invoice/paid? true}
-             (query env [:invoice/id 1] [:invoice/paid?]))))
+                  (map ::invoice/state (q/execute env ::invoice/invoice [::invoice/state])))))
 
     (testing "can list users in accounts"
-      (is (= {:account/name  "a0"
-              :account/users [{:user/name "u0a0"}
-                              {:user/name "u1a0"}]}
-             (query env
-                    [:account/name "a0"]
-                    [:account/name
-                     {:account/users [:user/name]}]))))
+      (is (= {::account/name  "a0"
+              ::account/users [{::user/name "u0a0"}
+                               {::user/name "u1a0"}]}
+             (q/execute env
+                        [::account/name "a0"]
+                        [::account/name
+                         {::account/users [::user/name]}]))))
 
     (testing "can do nested joins to construct result trees"
-      (is (= {:account/name     "a1"
-              :account/invoices [{:invoice/id    3
-                                  :invoice/total 4
-                                  :invoice/lines [{:line/quantity 20
-                                                   :line/product  {:product/name "z"}}]}]}
-             (query env
-                    [:account/name "a1"]
-                    [:account/name
-                     {:account/invoices [:invoice/id
-                                         :invoice/total
-                                         {:invoice/lines [:line/quantity
-                                                          {:line/product [:product/name]}]}]}]))))))
+      (is (= {::account/name     "a1"
+              ::account/invoices [{::invoice/id    3
+                                   ::invoice/total 4
+                                   ::invoice/lines [{::invoice-line/quantity 20
+                                                     ::invoice-line/product  {::product/name "z"}}]}]}
+             (q/execute env
+                        [::account/name "a1"]
+                        [::account/name
+                         {::account/invoices [::invoice/id
+                                              ::invoice/total
+                                              {::invoice/lines [::invoice-line/quantity
+                                                                {::invoice-line/product [::product/name]}]}]}]))))))
+
+;; To name the mutation
+(s/def ::account/create ::account/account)
+(s/def ::account/update (s/keys :opt [::account/name ::account/state]))
 
 (deftest sixth-schema-test
   (let [schema (make-schema
-                (entity :account
-                        (field :id          (ident))
-                        (field :name        (ident))
-                        (field :state)
-
-                        (has-many :users    [:id :user/account-id])
-                        (has-many :invoices [:id :invoice/account-id])
-
-                        (condition :active  :state :active)
-                        (condition :state)
-
-                        (mutation :account/create
-                                  ::account
-                                  [params]
-                                  (-> (h/insert-into :account)
-                                      (h/values [params])))
-
-                        (mutation :account/update
-                                  ::account
-                                  [{:keys [id] :as params}]
-                                  (-> (h/update :account)
-                                      ;; values are fed unqualified
-                                      (h/set (dissoc params :id))
-                                      (h/where [:= :id id]))))
-                (entity :user
-                        (field :id          (ident))
-                        (field :name        (ident))
-                        (field :email))
-                (entity :invoice
-                        (field :id          (ident))
-                        (field :state)
-                        (field :total)
-                        (compound :paid?    [state] (= state :paid))
-                        (has-many :lines    [:id :line/invoice-id])
-
-                        (condition :unpaid  :state :unpaid)
-                        (condition :paid    :state :paid))
-                (entity [:line :invoiceline]
-                        (field :id          (ident))
-                        (field :product)
-                        (field :quantity)))
+                (entity-from-spec ::account/account
+                                  (has-many :users    [:id ::user/account-id])
+                                  (has-many :invoices [:id ::invoice/account-id])
+                                  (condition :active  :state :active)
+                                  (add-create-mutation))
+                (entity-from-spec ::user/user)
+                (entity-from-spec ::invoice/invoice
+                                  (has-many :lines    [:id ::invoice-line/invoice-id])
+                                  (condition :unpaid  :state :unpaid)
+                                  (condition :paid    :state :paid))
+                (entity-from-spec ::product/product)
+                (entity-from-spec [::invoice-line/invoice-line :invoiceline]
+                                  (has-one :product [:product-id ::product/id])))
         env {:schema schema :jdbc jdbc-config}]
 
     (testing "joined entities containing only nil values are filtered out
             (happens when there is no remote entities)"
-      (mutate! env :account/create {:account/name  "a3"
-                                    :account/state :active})
+      (m/mutate! env ::account/create {::account/name  "a3"
+                                       ::account/state :active})
 
-      (is (= {:account/state :active}
-             (query env [:account/name "a3"] [:account/state])))
+      (is (= {::account/state :active}
+             (q/execute env [::account/name "a3"] [::account/state])))
 
-      (is (= {:account/name     "a3"
-              :account/invoices []}
-             (query env
-                    [:account/name "a3"]
-                    [:account/name {:account/invoices [:invoice/id
-                                                       :invoice/state]}])))
+      (is (= {::account/name "a3"}
+             (q/execute env
+                        [::account/name "a3"]
+                        [::account/name {::account/invoices [::invoice/id
+                                                             ::invoice/state]}])))
 
       (let [last-result  (atom nil)
             store-result (fn [details]
                            (reset! last-result
                                    (select-keys details [:mutation :result])))
-            env          (add-listener! env
-                                        :account/create
-                                        ::handler
-                                        store-result)]
+            env          (env/update-schema env
+                                            l/add-listener
+                                            ::account/create
+                                            ::handler
+                                            store-result)]
 
-        (mutate! env :account/create {:account/name "a4" :account/state :active})
+        (m/mutate! env ::account/create {::account/name "a4" ::account/state :active})
 
-        (is (= {:mutation :account/create
+        (is (= {:mutation ::account/create
                 :result   [{:next.jdbc/update-count 1}]}
                @last-result))))))

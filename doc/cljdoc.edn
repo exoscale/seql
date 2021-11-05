@@ -2,4 +2,5 @@
  [["Readme" {:file "README.md"}]
   ["Quickstart" {:file "doc/quickstart.md"}]
   ["Sandbox" {:file "doc/sandbox.md"}]
-  ["EQL reference" {:file "doc/seql.md"}]]}
+  ["EQL reference" {:file "doc/seql.md"}]
+  ["Conventions" {:file "doc/conventions.md"}]]}

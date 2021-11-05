@@ -1,7 +1,7 @@
 ## SEQL reference
 
 Queries take the following arguments in **SEQL**, by way of the
-[seql.core/query](seql.core.html#var-query) function.
+[seql.query/execute](seql.query.html#var-execute) function.
 
 **SEQL** takes a lot of inspiration from [EQL](https://edn-query-language.org),
 and thus shares the following property:
@@ -45,18 +45,18 @@ In this case, a single record or `nil` will be returned
 
 The best analogy for output field specification is to think of `select-keys`.
 
-```
+```clojure
 (query :account [:account/name :account/state])
 ```
 
-With the above query, the output will be a collect of record, each
+With the above query, the output will be a collection of record, each
 containing an `:account/name` and an `:account/state` key.
 
 #### Nested entities
 
 To denote nesting, maps must be used
 
-```
+```clojure
 (query :account [:account/name
                  :account/state
 				 {:account/users [:user/email])])
@@ -65,7 +65,7 @@ To denote nesting, maps must be used
 Maps associate a relation name to a query field vector honoring the same syntax.
 This allows nesting deep nesting of entities
 
-```
+```clojure
 (query :account [:account/name
                  :account/state
 				 {:account/invoice [:invoice/total
@@ -75,15 +75,23 @@ This allows nesting deep nesting of entities
 ### Conditions
 
 When provided, conditions may filter results. Conditions are provided
-as an extra argument to `seql.core/query` as a collection of
+as an extra argument to `seql.query/execute` as a collection of
 vectors. All conditions vectors have the condition name as their first
 element, followed by arguments if any.
 
+A condition can check for equality if given a single argument, or
+membership in a set if multiple are given:
+
+```clojure
+;; test for equality
+(query :account [:account/name] [[:account/state :active]])
+
+;; test for set membership
+(query :account [:account/name] [[:account/state :active :terminated]])
 ```
-(query :account
-       [:account/name]
-	   [[:account/active?] [:account/category :standard]])
+
+Multiple conditions may be provided and will be joined with a *logical and*:
+
+```clojure
+(query :account [:account/name] [[:account/state :active] [:account/type :admin]])
 ```
-
-
-
