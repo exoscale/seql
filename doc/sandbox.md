@@ -18,13 +18,15 @@ The is ample documentation in [quickstart](quickstart.html) around creating
 schemas. The one provided in `sandbox` is a minimal one:
 
 ```clojure
+  (s/def :account/state keyword?)
+
   (def env
     {:jdbc   jdbc-config
      :schema (make-schema
               (entity :account
-                      (field :id (ident))
-                      (field :name (ident))
-                      (field :state (transform :keyword))))})
+                      (field :id)
+                      (field :name)
+                      (field :state)))})
 ```
 
 ### Running queries
@@ -32,5 +34,5 @@ schemas. The one provided in `sandbox` is a minimal one:
 At this point, you are ready to go:
 
 ```
-  (query env :account [:account/name :account/state])
+  (q/execute env :account [:account/name :account/state])
 ```

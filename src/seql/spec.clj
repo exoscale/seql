@@ -1,25 +1,16 @@
-(ns seql.spec
+(ns ^:no-doc seql.spec
+  "Various specs for the structures used throughout the project"
   (:require [clojure.spec.alpha :as s]))
 
 (defn qualified-entity?
   [[entity
-    {:keys [idents fields transforms conditions
-            compounds relations mutations listeners]}]]
+    {:keys [idents fields conditions relations mutations]}]]
   (let [qualified? (partial = (name entity))]
     (and (every? qualified? (map namespace idents))
          (every? qualified? (map namespace fields))
          (every? qualified? (map namespace (keys conditions)))
          (every? qualified? (map namespace (keys relations)))
-         (every? qualified? (map namespace (keys mutations)))
-         (every? qualified? (map namespace (keys compounds)))
-         (every? qualified? (map namespace (keys transforms))))))
-
-(defn valid-fields?
-  [{:keys [idents fields transforms conditions compounds]}]
-  (let [valid-field? (partial contains? (set fields))]
-    (and (every? valid-field? idents)
-         (every? valid-field? (keys transforms))
-         (every? valid-field? (mapcat :source (vals compounds))))))
+         (every? qualified? (map namespace (keys mutations))))))
 
 (defmulti valid-local-relation? :type)
 
@@ -85,9 +76,9 @@
 (s/def ::spec (s/or :kw keyword? :spec s/spec?))
 
 (create-ns 'seql.pre)
-(s/def seql.pre/name string?)
-(s/def seql.pre/query fn?)
-(s/def seql.pre/valid? fn?)
+(s/def :seql.pre/name string?)
+(s/def :seql.pre/query fn?)
+(s/def :seql.pre/valid? fn?)
 (s/def ::pre-condition (s/keys :req-un [:seql.pre/name :seql.pre/query]
                                :opt-un [:seql.pre/valid?]))
 (s/def ::pre (s/coll-of ::pre-condition))
@@ -100,8 +91,6 @@
 (s/def ::local-id keyword?)
 (s/def ::remote-id keyword?)
 
-(s/def ::serdes (s/cat :serializer fn? :deserializer fn?))
-(s/def ::transforms (s/map-of keyword? ::serdes))
 (s/def ::condition (s/multi-spec condition-dispatch :type))
 (s/def ::conditions (s/map-of keyword? ::condition))
 
@@ -112,39 +101,19 @@
                           :opt-un [::pre]))
 (s/def ::mutations (s/map-of keyword? ::mutation))
 
-(s/def ::compound (s/keys :req-un [::source ::handler]))
-(s/def ::compounds (s/map-of keyword? ::compound))
-
-(s/def :seql.core/entity-def
+(s/def ::entity-def
   (s/and (s/keys :req-un [::table ::idents ::fields]
-                 :opt-un [::transforms ::conditions ::relations
-                          ::mutations ::compounds])))
-(s/def :seql.core/schema
-  (s/and (s/map-of keyword? :seql.core/entity-def)
+                 :opt-un [::conditions ::relations ::mutations])))
+(s/def ::schema
+  (s/and (s/map-of keyword? ::entity-def)
          qualified-schema?))
 
-(s/def :seql.core/jdbc any?)
+(s/def ::jdbc any?)
 
-(s/def :seql.core/env
-  (s/keys :req-un [:seql.core/schema :seql.core/jdbc]))
-
-(s/def :seql.core/condition (s/cat :name keyword? :args (s/* any?)))
-
-(s/def :seql.core/seql-relation
-  (s/and (s/map-of keyword? :seql.core/seql-query)
-         #(= 1 (count %))))
-
-(s/def :seql.core/seql-query
-  (s/coll-of (s/or :field keyword?
-                   :relation :seql.core/seql-relation)))
-
-(s/def :seql.core/seql-entity
-  (s/or :field keyword? :ident (s/cat :ident keyword? :arg any?)))
-
-(s/def :seql.core/conditions (s/coll-of :seql.core/condition))
+(s/def ::env (s/keys :req-un [::schema ::jdbc]))
 
 (defn valid-query-conditions?
-  [{:keys [env query conditions]}]
+  [{:keys [env conditions]}]
   (let [schema           (:schema env)
         known-conditions (set (mapcat (comp keys :conditions) (vals schema)))]
     (every? #(contains? known-conditions %) (map :name conditions))))
@@ -173,26 +142,13 @@
 (defn valid-query-fields?
   [{:keys [env query]}]
   (let [schema             (:schema env)
-        known-fields       (set
-                            (concat (mapcat :fields (vals schema))
-                                    (mapcat (comp keys :compounds)
-                                            (vals schema))))
-
-        known-relations    (set (mapcat (comp keys :relations) (vals schema)))
+        known-fields       (into #{} (mapcat :fields) (vals schema))
+        known-relations    (into #{} (mapcat (comp keys :relations)) (vals schema))
         [relations fields] (flatten-query
                             (s/unform :seql.core/seql-query query))]
     (and
      (every? #(contains? known-fields %) fields)
      (every? #(contains? known-relations %) relations))))
-
-(s/def :seql.core/query-args
-  (s/and
-   (s/cat :env :seql.core/env
-          :entity :seql.core/seql-entity
-          :query :seql.core/seql-query
-          :conditions :seql.core/conditions)
-   valid-query-conditions?
-   valid-query-fields?))
 
 (s/def :seql.core/mutate-args
   (s/cat :env :seql.core/env

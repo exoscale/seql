@@ -1,8 +1,6 @@
 seql: Simplified EDN Query Language
 ===================================
 
-
-
 **seql** intends to provide a simplified
 [EQL](https://edn-query-language.org/) inspired query language to
 access entities stored in traditional SQL databases.
@@ -33,30 +31,27 @@ well as normalizing data to provide for more idiomatic Clojure data in
 query results
 
 ```clojure
-(query env :account [:account/name
-                     :account/state
-                     {:account/users [:user/email]}])
+(query env ::account [::account/name
+                      ::account/state
+                      {::account/users [::user/email]}])
 
 ;; =>
 
-[#:account{:name "org1"
-           :state :active
-		   :users [#:user{:email "first@example.com"}
-		           #:user{:email "second@example.com"}]}
- #:account{:name "org2"
-           :state :suspended
-		   :users [#:user{:email "bad@example.com"}
-		           #:user{:email "worst@example.com"}]}]
+[#::account{:name "org1"
+            :state :active
+	        :users [#::user{:email "first@example.com"}
+                    #::user{:email "second@example.com"}]}
+ #::account{:name "org2"
+            :state :suspended
+	        :users [#::user{:email "bad@example.com"}
+		            #::user{:email "worst@example.com"}]}]
 
-(mutate! env
-         :account/new-organization
-		 #:account{:name "org3"
-		           :users [#:user{:email "hello@example.com"}]})
+(mutate! env ::account/create #::account{:name "org3"})
 ```
 
 **seql** is built on top of
-[honeysql](https://github.com/seancorfield/honeysql) and makes that dependency
-apparent in some case, particularly for mutations.
+[honeysql](https://github.com/seancorfield/honeysql) and makes that
+dependency apparent in some case, particularly for mutations.
 
 ## Changelog
 
