@@ -1,4 +1,4 @@
-(defproject exoscale/seql "0.2.0-SNAPSHOT"
+(defproject exoscale/seql "0.2.0"
   :description "Simplfied EDN Query Language for SQL"
   :url "https://github.com/exoscale/seql"
   :license {:name "MIT/ISC License"}
