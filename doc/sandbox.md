@@ -14,19 +14,18 @@ is only present under the **dev** leiningen profile:
 
 ### Creating a schema
 
-The is ample documentation in [quickstart](quickstart.html) around creating
+The is ample documentation in [README](../README.html) around creating
 schemas. The one provided in `sandbox` is a minimal one:
 
 ```clojure
-  (s/def :account/state keyword?)
+  (s/def :account/name string?)
+  (s/def :account/state #{:active :suspended :terminated})
+  (s/def :account/id nat-int?)
+  (s/def :account/account (s/keys :req [:account/name :account/state] :opt [:account/id]))
 
   (def env
     {:jdbc   jdbc-config
-     :schema (make-schema
-              (entity :account
-                      (field :id)
-                      (field :name)
-                      (field :state)))})
+     :schema (make-schema (entity-from-spec :account/account))})
 ```
 
 ### Running queries
@@ -34,5 +33,5 @@ schemas. The one provided in `sandbox` is a minimal one:
 At this point, you are ready to go:
 
 ```
-  (q/execute env :account [:account/name :account/state])
+  (q/execute env :account)
 ```
