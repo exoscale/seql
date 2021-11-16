@@ -61,8 +61,9 @@ Inital release.
 This project was greatly inspired by @wilkerlucio's work on
 [pathom](https://github.com/wilkerlucio/pathom) and subsequently
 [EQL](https://github.com/edn-query-language/eql).  As a first consumer
-of this library @davidjacot also help iron out a few kinks and made
-some significant improvements.
+of this library @davidjacot also helped iron out a few kinks and made
+some significant improvements. The 0.2.x release benefited from the
+sound advice and reviews of @arnaudgeiser and @mpenet.
 
 ## Quickstart
 
