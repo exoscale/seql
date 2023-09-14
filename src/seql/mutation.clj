@@ -40,6 +40,12 @@
                                    :pre      (dissoc pre :valid? :query)}))))))
           pre)))
 
+(defn- wrap-statements
+  "Transform returned statement value into a vector, allowing handlers to return
+   multiple statements"
+  [x]
+  (if (vector? x) x [x]))
+
 (defn mutate!
   "Perform a mutation. Since mutations are spec'd, parameters are
    expected to conform it."
@@ -56,15 +62,15 @@
                         :code    400
                         :explain (s/explain-str spec params)})))
      (let [cparams     (c/write-map params)
-           statement   (-> cparams
-                           (assoc ::schema (env/schema env))
-                           (assoc ::metadata metadata)
-                           handler
-                           sql/format)
+           statements  (map sql/format (-> cparams
+                                           (assoc ::schema (env/schema env))
+                                           (assoc ::metadata metadata)
+                                           handler
+                                           wrap-statements))
            result      (jdbc/with-transaction [tx (env/jdbc env)]
                          ;; if we have preconditions check these first
                          (run-preconditions! tx mutation (dissoc cparams ::schema ::metadata) pre)
-                         (jdbc/execute! tx statement))]
+                         (last (map #(jdbc/execute! tx %) statements)))]
        (when-not (success-result? result)
          (throw (ex-info (format "the mutation has failed: %s" mutation)
                          {:type     :error/mutation-failed
