@@ -33,6 +33,19 @@
   (->> (into-query schema params)
        (sql/format)))
 
+(defn show
+  "Return the SQL that would be ran for a particular EQL query against a schema.
+   Useful while building queries"
+  ([env entity]
+   (show env entity (schema/resolve-fields (env/schema env) entity) []))
+  ([env entity fields]
+   (show env entity fields []))
+  ([env entity fields conditions]
+   (let [schema (env/schema env)]
+     (->> (params/for-query schema entity fields conditions)
+          (into-query schema)
+          (sql/format)))))
+
 (defn educt
   "Run a SEQL query and return an eduction of the records. No tree recomposition
    is performed, joined rows will be returned one by one. Since SEQL's tree recomposition
