@@ -1,12 +1,12 @@
 (ns seql.coerce
   "Handling of field coercion for read/write"
   (:refer-clojure :exclude [read])
-  (:require [clojure.edn   :as edn]
+  (:require [clojure.edn :as edn]
             [exoscale.coax :as c]))
 
 (def ^:no-doc spec-registry
   (atom {::reader {}
-         ::writer {::c/idents {`keyword? (fn [x _] (name x))}}}))
+         ::writer {:idents {`keyword? (fn [x _] (name x))}}}))
 
 (defn edn-reader
   "An example reader for arbitrary values stored in EDN in the database"
@@ -20,7 +20,7 @@
 
 (defn ^:no-doc -register-rw!
   [type spec-key coercer]
-  (swap! spec-registry assoc-in [type ::c/idents spec-key] coercer)
+  (swap! spec-registry assoc-in [type :idents spec-key] coercer)
   spec-key)
 
 (defn with-writer!
