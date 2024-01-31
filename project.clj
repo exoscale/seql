@@ -15,7 +15,7 @@
                     :plugins [[lein-cloverage "1.2.2"]]}
              :uberjar {:pedantic? :abort}}
   :aliases {"coverage" ["with-profile" "+test" "cloverage"]}
-  :dependencies [[org.clojure/clojure "1.10.3"]
+  :dependencies [[org.clojure/clojure "1.11.1"]
                  [com.github.seancorfield/next.jdbc "1.2.737"]
                  [com.github.seancorfield/honeysql "2.1.818"]
                  [exoscale/coax "2.0.0"]])
