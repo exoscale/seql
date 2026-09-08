@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: DeLaGuardo/setup-clojure@4c7a6f613e5089821bb3bb2a33a3ee115578580d # 13.6.1
         with:
-          lein: '2.13.0'
+          lein: '2.12.0'
           clj-kondo: '2020.04.05'
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Lint
