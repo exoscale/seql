@@ -19,10 +19,10 @@
 (deftest find-selections-test
   (testing "field extraction"
     (are [x y] (= x (find-selections abc-schema y))
-      [:a.id]             [:a/id]
-      [:a.id :a.name]     [:a/id :a/name]
-      [:a.id :b.id]       [:a/id {:a/b [:b/id]}]
-      [:a.id :b.id :x.id] [:a/id {:a/b [:b/id {:b/c [:c/id]}]}])))
+      [[:a.id (keyword "a,id")]]                                                   [:a/id]
+      [[:a.id (keyword "a,id")] [:a.name (keyword "a,name")]]                      [:a/id :a/name]
+      [[:a.id (keyword "a,id")] [:b.id (keyword "b,id")]]                          [:a/id {:a/b [:b/id]}]
+      [[:a.id (keyword "a,id")] [:b.id (keyword "b,id")] [:x.id (keyword "x,id")]] [:a/id {:a/b [:b/id {:b/c [:c/id]}]}])))
 
 (deftest find-joins-test
   (testing "join extraction"
