@@ -27,16 +27,16 @@
                     :fields [:c/id]}}]
 
     (testing "basic single-layer query"
-      (is (= "SELECT a.id FROM a"
+      (is (= "SELECT a.id AS \"a,id\" FROM a"
              (sql-format schema :a [:a/id] []))))
 
     (testing "query for one nested entity"
-      (is (= (str "SELECT a.id, b.id "
+      (is (= (str "SELECT a.id AS \"a,id\", b.id AS \"b,id\" "
                   "FROM a LEFT JOIN b ON a.id = b.a_id")
              (sql-format schema :a [:a/id {:a/b [:b/id]}] []))))
 
     (testing "query for a two-level nested entity"
-      (is (= (str "SELECT a.id, b.id, c.id "
+      (is (= (str "SELECT a.id AS \"a,id\", b.id AS \"b,id\", c.id AS \"c,id\" "
                   "FROM a LEFT JOIN b ON a.id = b.a_id "
                   "LEFT JOIN c ON b.id = c.b_id")
              (sql-format schema :a [:a/id {:a/b [:b/id {:b/c [:c/id]}]}] []))))))
@@ -61,8 +61,8 @@
                     :fields [:i/id :i/a-id :i/b-id]}}]
 
     (testing "basic single-layer query"
-      (is (= "SELECT a.id FROM a" (sql-format schema :a [:a/id] []))))
+      (is (= "SELECT a.id AS \"a,id\" FROM a" (sql-format schema :a [:a/id] []))))
 
     (testing "many-to-many query"
-      (is (= "SELECT a.id, b.id FROM a LEFT JOIN i ON a.id = i.a_id LEFT JOIN b ON i.b_id = b.id"
+      (is (= "SELECT a.id AS \"a,id\", b.id AS \"b,id\" FROM a LEFT JOIN i ON a.id = i.a_id LEFT JOIN b ON i.b_id = b.id"
              (sql-format schema :a [:a/id {:a/b [:b/id]}] []))))))

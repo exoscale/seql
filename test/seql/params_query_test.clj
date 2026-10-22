@@ -19,7 +19,7 @@
       {:table      :a
        :fields     [:a/id]
        :ident?     false
-       :selections [:a.id]
+       :selections [[:a.id (keyword "a,id")]]
        :conditions nil
        :joins      []}
       :a/a [:a/id] []
@@ -27,7 +27,7 @@
       {:table      :a
        :fields     [:a/id]
        :ident?     true
-       :selections [:a.id]
+       :selections [[:a.id (keyword "a,id")]]
        :conditions [[:= :a.id 0]]
        :joins      []}
       [:a/id 0] [:a/id] []
@@ -35,7 +35,7 @@
       {:table      :a
        :fields     [:a/id {:a/b [:b/id]}]
        :ident?     true
-       :selections [:a.id :b.id]
+       :selections [[:a.id (keyword "a,id")] [:b.id (keyword "b,id")]]
        :conditions [[:= :a.id 0] [:= :b.name "foo"]]
        :joins      [:a/b]}
       [:a/id 0] [:a/id {:a/b [:b/id]}] [[:b/name "foo"]])))

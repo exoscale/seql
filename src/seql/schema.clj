@@ -91,6 +91,16 @@
             (name override)
             (->snake_case_string (name field)))))))
 
+(defn resolve-field-alias
+  [schema field]
+  (let [table (resolve-table schema field)]
+    (keyword
+     (str (name table)
+          ","
+          (if-let [override (resolve-override schema field)]
+            (name override)
+            (->snake_case_string (name field)))))))
+
 (defn resolve-fields
   "Resolves known fields from a schema"
   [schema kw]
@@ -131,6 +141,20 @@
                      :when (= (str/lower-case field) (str/lower-case (name v)))]
                  k))
         (keyword entity (->kebab-case-string field)))))
+
+(defn unresolve-column-by-alias
+  "Figure out a field name based on a table and column name in SQL."
+  [schema table-and-field]
+  (let [parts (str/split table-and-field #",")]
+    (when (= 2 (count parts))
+      (let [table  (first parts)
+            field  (second parts)
+            entity (unresolve-table schema table)]
+        (or (first
+             (for [[k v] (resolve-by-entity schema (keyword entity) :overrides)
+                   :when (= (str/lower-case field) (str/lower-case (name v)))]
+               k))
+            (keyword entity (->kebab-case-string field)))))))
 
 ;; I wonder if this belongs here, maybe in coerce?
 (defn as-column-name
