@@ -13,7 +13,8 @@
             (into [] cat (map extract-fields l)))
           (extract-fields [[k v]]
             (case k
-              :field    [(schema/resolve-field schema v)]
+              :field    [[(schema/resolve-field schema v)
+                          (schema/resolve-field-alias schema v)]]
               :relation (list-extract-fields (first (vals v)))))]
     (list-extract-fields q)))
 

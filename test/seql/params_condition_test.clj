@@ -102,5 +102,5 @@
                     :conditions {:a/active {:type  :static
                                             :field :a/state
                                             :value :active}}}}]
-    (is (= ["SELECT b.id FROM b WHERE b.state = ?" "active"]
+    (is (= ["SELECT b.id AS \"b,id\" FROM b WHERE b.state = ?" "active"]
            (sql-format schema :a [:a/id] [[:a/active]])))))
