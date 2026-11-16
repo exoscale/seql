@@ -7,11 +7,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: DeLaGuardo/setup-clojure@6d46099eae24853c33c0482f2bb54edf4f1a4c74 # 13.7.0
+      - uses: DeLaGuardo/setup-clojure@13.7.0
         with:
           lein: '2.12.0'
           clj-kondo: '2020.04.05'
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
       - name: Lint
         run: clj-kondo --lint .
       - name: Install dependencies, Run syntax conformance checks
@@ -19,7 +19,7 @@ jobs:
       - name: Run tests
         run: lein coverage --junit --lcov
       - name: Publish Test Report
-        uses: mikepenz/action-junit-report@8a133bfa3ecb0ea9024c1e2ae788b4c25f6cdb9d # v6.6.2
+        uses: mikepenz/action-junit-report@v6.7.1
         if: always()
         with:
           report_paths: 'target/coverage/junit.xml'
