@@ -10,9 +10,7 @@
   "Reverse lookup of column name for rows."
   [schema ^ResultSetMetaData rsmeta]
   (mapv (fn [^Integer i]
-          (schema/unresolve-column schema
-                                   (.getTableName rsmeta i)
-                                   (.getColumnLabel rsmeta i)))
+          (schema/unresolve-column-by-alias schema (.getColumnLabel rsmeta i)))
         (range 1 (inc (if rsmeta (.getColumnCount rsmeta) 0)))))
 
 (defn builder-fn
